@@ -956,6 +956,8 @@
                     
                     // 상세한 성공 메시지 생성
                     const customerName = document.getElementById('name').value;
+                    const customerPhone = document.getElementById('phone').value;
+                    const customerEmail = document.getElementById('email').value;
                     const selectedDate = document.getElementById('date').value;
                     const selectedTimeValue = document.getElementById('selectedTime').value;
                     const guestCount = document.getElementById('guests').value;
@@ -1002,6 +1004,8 @@
 • 시간: ${selectedTimeValue}
 • 공간: ${spaceName}
 • 인원: ${guestCount}명
+• 전화번호: ${customerPhone}
+• 이메일: ${customerEmail}
 
 📧 다음 단계
 관리자가 예약을 확인한 후 확정 이메일을 보내드립니다.
@@ -1017,6 +1021,8 @@
 • เวลา: ${selectedTimeValue}
 • พื้นที่: ${spaceName}
 • จำนวน: ${guestCount} ท่าน
+• เบอร์โทร: ${customerPhone}
+• อีเมล: ${customerEmail}
 
 📧 ขั้นตอนถัดไป
 ผู้จัดการจะตรวจสอบและส่งอีเมลยืนยันให้คุณ
@@ -1032,6 +1038,8 @@
 • Time: ${selectedTimeValue}
 • Space: ${spaceName}
 • Guests: ${guestCount}
+• Phone: ${customerPhone}
+• Email: ${customerEmail}
 
 📧 Next Steps
 Manager will review and send confirmation email.
