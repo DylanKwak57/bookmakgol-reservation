@@ -937,9 +937,85 @@
                 if (result.status === 'success') {
                     document.getElementById('loading').style.display = 'none';
                     document.getElementById('successMessage').style.display = 'block';
-                    document.getElementById('booking-number').textContent = 
-                        (currentLang === 'ko' ? '예약번호: ' : 
-                         currentLang === 'th' ? 'เลขที่การจอง: ' : 'Booking Number: ') + result.bookingNumber;
+                    
+                    // 상세한 성공 메시지 생성
+                    const customerName = document.getElementById('name').value;
+                    const selectedDate = document.getElementById('date').value;
+                    const selectedTimeValue = document.getElementById('selectedTime').value;
+                    const guestCount = document.getElementById('guests').value;
+                    
+                    // 지점 정보
+                    const branchNames = {
+                        'Ekamai': {ko: '에까마이 지점', th: 'สาขาเอกมัย', en: 'Ekamai Branch'},
+                        'Phrom Phong': {ko: '프롬퐁 지점', th: 'สาขาพร้อมพงษ์', en: 'Phrom Phong Branch'}
+                    };
+                    
+                    // 공간 정보
+                    const spaceNames = {
+                        'Room 1': {ko: '1번룸', th: 'ห้องที่ 1', en: 'Room 1'},
+                        'Room 2': {ko: '2번룸', th: 'ห้องที่ 2', en: 'Room 2'}
+                    };
+                    
+                    const branchName = branchNames[selectedBranch][currentLang];
+                    const spaceName = spaceNames[selectedDetail] ? spaceNames[selectedDetail][currentLang] : selectedDetail;
+                    
+                    // 날짜 포맷팅
+                    const dateObj = new Date(selectedDate);
+                    const formattedDate = {
+                        ko: dateObj.toLocaleDateString('ko-KR', {year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'}),
+                        th: dateObj.toLocaleDateString('th-TH', {year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'}),
+                        en: dateObj.toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'})
+                    }[currentLang];
+                    
+                    const successMessages = {
+                        ko: `${customerName}님의 예약이 성공적으로 접수되었습니다! 🎉
+
+📋 예약 정보
+• 예약번호: ${result.bookingNumber}
+• 지점: ${branchName}
+• 날짜: ${formattedDate}
+• 시간: ${selectedTimeValue}
+• 공간: ${spaceName}
+• 인원: ${guestCount}명
+
+📧 다음 단계
+관리자가 예약을 확인한 후 확정 이메일을 보내드립니다.
+확정까지 보통 1-2시간 소요됩니다.
+
+문의사항이 있으시면 전화로 연락주세요.`,
+                        th: `การจองของคุณ${customerName} สำเร็จแล้ว! 🎉
+
+📋 ข้อมูลการจอง
+• เลขที่การจอง: ${result.bookingNumber}
+• สาขา: ${branchName}
+• วันที่: ${formattedDate}
+• เวลา: ${selectedTimeValue}
+• พื้นที่: ${spaceName}
+• จำนวน: ${guestCount} ท่าน
+
+📧 ขั้นตอนถัดไป
+ผู้จัดการจะตรวจสอบและส่งอีเมลยืนยันให้คุณ
+ใช้เวลาประมาณ 1-2 ชั่วโมง
+
+หากมีข้อสงสัย กรุณาโทรสอบถาม`,
+                        en: `${customerName}'s reservation submitted successfully! 🎉
+
+📋 Reservation Details
+• Booking Number: ${result.bookingNumber}
+• Branch: ${branchName}
+• Date: ${formattedDate}
+• Time: ${selectedTimeValue}
+• Space: ${spaceName}
+• Guests: ${guestCount}
+
+📧 Next Steps
+Manager will review and send confirmation email.
+Usually takes 1-2 hours.
+
+For inquiries, please call us.`
+                    };
+                    
+                    document.getElementById('booking-number').innerHTML = successMessages[currentLang];
                 } else {
                     throw new Error(result.message || 'Unknown error');
                 }
