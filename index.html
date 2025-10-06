@@ -1,0 +1,896 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title id="page-title">북막골 예약 | Bookmakgol Reservation</title>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: 'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+            background: linear-gradient(135deg, #f5f3f0 0%, #e8e2d8 100%);
+            color: #4a3c28;
+            line-height: 1.6;
+            min-height: 100vh;
+        }
+
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            padding: 20px;
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+            background: white;
+            border-radius: 20px;
+            padding: 30px 20px;
+            box-shadow: 0 4px 20px rgba(74, 60, 40, 0.1);
+        }
+
+        .logo {
+            font-size: 2.5rem;
+            font-weight: bold;
+            color: #8b4513;
+            margin-bottom: 10px;
+            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+        }
+
+        .subtitle {
+            font-size: 1.1rem;
+            color: #6b5b47;
+            margin-bottom: 20px;
+        }
+
+        .language-selector {
+            display: flex;
+            justify-content: center;
+            gap: 10px;
+            margin-bottom: 20px;
+        }
+
+        .lang-btn {
+            padding: 8px 16px;
+            border: 2px solid #d4c4a8;
+            background: white;
+            color: #6b5b47;
+            border-radius: 25px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+        }
+
+        .lang-btn.active {
+            background: #8b4513;
+            color: white;
+            border-color: #8b4513;
+        }
+
+        .form-container {
+            background: white;
+            border-radius: 20px;
+            padding: 30px;
+            box-shadow: 0 4px 20px rgba(74, 60, 40, 0.1);
+            margin-bottom: 20px;
+        }
+
+        .form-section {
+            margin-bottom: 25px;
+        }
+
+        .section-title {
+            font-size: 1.2rem;
+            color: #8b4513;
+            margin-bottom: 15px;
+            padding-bottom: 8px;
+            border-bottom: 2px solid #f0e6d2;
+            display: flex;
+            align-items: center;
+        }
+
+        .section-number {
+            background: #8b4513;
+            color: white;
+            width: 25px;
+            height: 25px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 0.9rem;
+            margin-right: 10px;
+        }
+
+        .form-group {
+            margin-bottom: 20px;
+        }
+
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: 500;
+            color: #4a3c28;
+        }
+
+        .required {
+            color: #d2691e;
+        }
+
+        input, select, textarea {
+            width: 100%;
+            padding: 12px;
+            border: 2px solid #e8e2d8;
+            border-radius: 10px;
+            font-size: 1rem;
+            transition: border-color 0.3s ease;
+            background: #fafafa;
+        }
+
+        input:focus, select:focus, textarea:focus {
+            outline: none;
+            border-color: #8b4513;
+            background: white;
+        }
+
+        .form-row {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+        }
+
+        .branch-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 15px;
+            margin-bottom: 15px;
+        }
+
+        .branch-card {
+            border: 2px solid #e8e2d8;
+            border-radius: 15px;
+            padding: 15px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+
+        .branch-card:hover {
+            border-color: #8b4513;
+            background: white;
+        }
+
+        .branch-card.selected {
+            border-color: #8b4513;
+            background: #8b4513;
+            color: white;
+        }
+
+        .branch-name {
+            font-weight: bold;
+            font-size: 1.1rem;
+            margin-bottom: 5px;
+        }
+
+        .branch-info {
+            font-size: 0.9rem;
+            opacity: 0.8;
+        }
+
+        .space-options {
+            display: none;
+            margin-top: 15px;
+        }
+
+        .space-options.show {
+            display: block;
+        }
+
+        .space-type-selector {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .space-btn {
+            padding: 10px;
+            border: 2px solid #e8e2d8;
+            background: #fafafa;
+            border-radius: 10px;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            text-align: center;
+        }
+
+        .space-btn.selected {
+            border-color: #8b4513;
+            background: #8b4513;
+            color: white;
+        }
+
+        .room-details, .floor-details {
+            display: none;
+            margin-top: 10px;
+        }
+
+        .room-details.show, .floor-details.show {
+            display: block;
+        }
+
+        .room-cards, .floor-cards {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 10px;
+        }
+
+        .detail-card {
+            border: 2px solid #e8e2d8;
+            border-radius: 10px;
+            padding: 10px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            background: #fafafa;
+        }
+
+        .detail-card.selected {
+            border-color: #8b4513;
+            background: #8b4513;
+            color: white;
+        }
+
+        .submit-btn {
+            width: 100%;
+            padding: 15px;
+            background: linear-gradient(135deg, #8b4513 0%, #a0522d 100%);
+            color: white;
+            border: none;
+            border-radius: 15px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            box-shadow: 0 4px 15px rgba(139, 69, 19, 0.3);
+        }
+
+        .submit-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(139, 69, 19, 0.4);
+        }
+
+        .submit-btn:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+            transform: none;
+            box-shadow: none;
+        }
+
+        .loading {
+            display: none;
+            text-align: center;
+            padding: 20px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f3f3;
+            border-top: 3px solid #8b4513;
+            border-radius: 50%;
+            width: 30px;
+            height: 30px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 10px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .message {
+            padding: 15px;
+            border-radius: 10px;
+            margin: 20px 0;
+            text-align: center;
+            display: none;
+        }
+
+        .success {
+            background: #d4edda;
+            border: 1px solid #c3e6cb;
+            color: #155724;
+        }
+
+        .error {
+            background: #f8d7da;
+            border: 1px solid #f5c6cb;
+            color: #721c24;
+        }
+
+        .time-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(80px, 1fr));
+            gap: 8px;
+            margin-top: 10px;
+        }
+
+        .time-slot {
+            padding: 8px 4px;
+            border: 2px solid #e8e2d8;
+            border-radius: 8px;
+            text-align: center;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            font-size: 0.9rem;
+            background: #fafafa;
+        }
+
+        .time-slot:hover {
+            border-color: #8b4513;
+            background: white;
+        }
+
+        .time-slot.selected {
+            border-color: #8b4513;
+            background: #8b4513;
+            color: white;
+        }
+
+        .time-slot.unavailable {
+            background: #f5f5f5;
+            color: #999;
+            cursor: not-allowed;
+        }
+
+        @media (max-width: 768px) {
+            .container {
+                padding: 10px;
+            }
+
+            .form-row {
+                grid-template-columns: 1fr;
+            }
+
+            .branch-cards {
+                grid-template-columns: 1fr;
+            }
+
+            .logo {
+                font-size: 2rem;
+            }
+
+            .form-container {
+                padding: 20px;
+            }
+        }
+
+        .hidden {
+            display: none !important;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <div class="logo">북막골</div>
+            <div class="subtitle" id="subtitle">태국 전통 한식당 예약</div>
+            
+            <div class="language-selector">
+                <button class="lang-btn active" data-lang="ko">한국어</button>
+                <button class="lang-btn" data-lang="th">ไทย</button>
+                <button class="lang-btn" data-lang="en">English</button>
+            </div>
+        </div>
+
+        <div class="form-container">
+            <form id="reservationForm">
+                <!-- Step 1: 지점 선택 -->
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <span class="section-number">1</span>
+                        <span id="step1-title">지점 선택</span>
+                    </h3>
+                    
+                    <div class="branch-cards">
+                        <div class="branch-card" data-branch="Ekamai">
+                            <div class="branch-name" id="ekamai-name">에까마이 지점</div>
+                            <div class="branch-info" id="ekamai-info">BTS 에까마이역 4번 출구</div>
+                        </div>
+                        <div class="branch-card" data-branch="Phrom Phong">
+                            <div class="branch-name" id="phrom-name">프롬퐁 지점</div>
+                            <div class="branch-info" id="phrom-info">수쿰윗 소이 24</div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 2: 날짜 및 시간 -->
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <span class="section-number">2</span>
+                        <span id="step2-title">날짜 및 시간</span>
+                    </h3>
+                    
+                    <div class="form-group">
+                        <label for="date" id="date-label">날짜 선택 <span class="required">*</span></label>
+                        <input type="date" id="date" name="date" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label id="time-label">시간 선택 <span class="required">*</span></label>
+                        <div class="time-grid" id="timeGrid">
+                            <!-- 시간 슬롯들이 동적으로 생성됩니다 -->
+                        </div>
+                        <input type="hidden" id="selectedTime" name="time">
+                    </div>
+                </div>
+
+                <!-- Step 3: 공간 선택 -->
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <span class="section-number">3</span>
+                        <span id="step3-title">공간 선택</span>
+                    </h3>
+                    
+                    <div class="space-options" id="spaceOptions">
+                        <div class="space-type-selector">
+                            <div class="space-btn" data-space="룸" id="room-btn">
+                                <div id="room-text">룸 (개별 공간)</div>
+                            </div>
+                            <div class="space-btn" data-space="홀" id="hall-btn">
+                                <div id="hall-text">홀 (일반 테이블)</div>
+                            </div>
+                        </div>
+                        
+                        <div class="room-details" id="roomDetails">
+                            <div class="room-cards">
+                                <div class="detail-card" data-room="1번룸">
+                                    <div id="room1-text">1번룸</div>
+                                    <div id="room1-capacity">최대 16명</div>
+                                </div>
+                                <div class="detail-card" data-room="2번룸">
+                                    <div id="room2-text">2번룸</div>
+                                    <div id="room2-capacity">최대 6명 (에까마이) / 4명 (프롬퐁)</div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="floor-details" id="floorDetails">
+                            <div class="floor-cards">
+                                <div class="detail-card" data-floor="1층">
+                                    <div id="floor1-text">1층</div>
+                                </div>
+                                <div class="detail-card" data-floor="2층">
+                                    <div id="floor2-text">2층</div>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Step 4: 인원 -->
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <span class="section-number">4</span>
+                        <span id="step4-title">인원 수</span>
+                    </h3>
+                    
+                    <div class="form-group">
+                        <label for="guests" id="guests-label">인원 <span class="required">*</span></label>
+                        <input type="number" id="guests" name="guests" min="1" max="20" required>
+                    </div>
+                </div>
+
+                <!-- Step 5: 연락처 정보 -->
+                <div class="form-section">
+                    <h3 class="section-title">
+                        <span class="section-number">5</span>
+                        <span id="step5-title">연락처 정보</span>
+                    </h3>
+                    
+                    <div class="form-group">
+                        <label for="name" id="name-label">이름 <span class="required">*</span></label>
+                        <input type="text" id="name" name="name" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="phone" id="phone-label">전화번호 <span class="required">*</span></label>
+                        <input type="tel" id="phone" name="phone" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="email" id="email-label">이메일 <span class="required">*</span></label>
+                        <input type="email" id="email" name="email" required>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="special-request" id="special-label">특별 요청</label>
+                        <textarea id="special-request" name="specialRequest" rows="3" placeholder=""></textarea>
+                    </div>
+                </div>
+
+                <button type="submit" class="submit-btn" id="submitBtn">예약하기</button>
+            </form>
+
+            <div class="loading" id="loading">
+                <div class="spinner"></div>
+                <div id="loading-text">예약을 처리 중입니다...</div>
+            </div>
+
+            <div class="message success" id="successMessage">
+                <div id="success-text">예약이 성공적으로 접수되었습니다!</div>
+                <div id="booking-number"></div>
+            </div>
+
+            <div class="message error" id="errorMessage">
+                <div id="error-text">예약 처리 중 오류가 발생했습니다.</div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // 다국어 텍스트
+        const translations = {
+            ko: {
+                pageTitle: '북막골 예약 | Bookmakgol Reservation',
+                subtitle: '태국 전통 한식당 예약',
+                step1Title: '지점 선택',
+                step2Title: '날짜 및 시간',
+                step3Title: '공간 선택',
+                step4Title: '인원 수',
+                step5Title: '연락처 정보',
+                ekamaiName: '에까마이 지점',
+                ekamaiInfo: 'BTS 에까마이역 4번 출구',
+                phromName: '프롬퐁 지점',
+                phromInfo: '수쿰윗 소이 24',
+                dateLabel: '날짜 선택',
+                timeLabel: '시간 선택',
+                roomText: '룸 (개별 공간)',
+                hallText: '홀 (일반 테이블)',
+                room1Text: '1번룸',
+                room1Capacity: '최대 16명',
+                room2Text: '2번룸',
+                room2Capacity: '최대 6명 (에까마이) / 4명 (프롬퐁)',
+                floor1Text: '1층',
+                floor2Text: '2층',
+                guestsLabel: '인원',
+                nameLabel: '이름',
+                phoneLabel: '전화번호',
+                emailLabel: '이메일',
+                specialLabel: '특별 요청',
+                submitBtn: '예약하기',
+                loadingText: '예약을 처리 중입니다...',
+                successText: '예약이 성공적으로 접수되었습니다!',
+                errorText: '예약 처리 중 오류가 발생했습니다.',
+                required: '*'
+            },
+            th: {
+                pageTitle: 'จองโต๊ะ บุกมักกล | Bookmakgol Reservation',
+                subtitle: 'ร้านอาหารเกาหลีดั้งเดิมในประเทศไทย',
+                step1Title: 'เลือกสาขา',
+                step2Title: 'วันที่และเวลา',
+                step3Title: 'เลือกพื้นที่',
+                step4Title: 'จำนวนคน',
+                step5Title: 'ข้อมูลติดต่อ',
+                ekamaiName: 'สาขาเอกมัย',
+                ekamaiInfo: 'BTS เอกมัย ทางออก 4',
+                phromName: 'สาขาพร้อมพงษ์',
+                phromInfo: 'สุขุมวิท ซอย 24',
+                dateLabel: 'เลือกวันที่',
+                timeLabel: 'เลือกเวลา',
+                roomText: 'ห้องส่วนตัว',
+                hallText: 'โต๊ะทั่วไป',
+                room1Text: 'ห้องที่ 1',
+                room1Capacity: 'สูงสุด 16 คน',
+                room2Text: 'ห้องที่ 2',
+                room2Capacity: 'สูงสุด 6 คน (เอกมัย) / 4 คน (พร้อมพงษ์)',
+                floor1Text: 'ชั้น 1',
+                floor2Text: 'ชั้น 2',
+                guestsLabel: 'จำนวนคน',
+                nameLabel: 'ชื่อ',
+                phoneLabel: 'เบอร์โทร',
+                emailLabel: 'อีเมล',
+                specialLabel: 'ความต้องการพิเศษ',
+                submitBtn: 'จองโต๊ะ',
+                loadingText: 'กำลังดำเนินการจอง...',
+                successText: 'การจองสำเร็จแล้ว!',
+                errorText: 'เกิดข้อผิดพลาดในการจอง',
+                required: '*'
+            },
+            en: {
+                pageTitle: 'Bookmakgol Reservation',
+                subtitle: 'Traditional Korean Restaurant in Thailand',
+                step1Title: 'Select Branch',
+                step2Title: 'Date & Time',
+                step3Title: 'Select Space',
+                step4Title: 'Party Size',
+                step5Title: 'Contact Information',
+                ekamaiName: 'Ekamai Branch',
+                ekamaiInfo: 'BTS Ekamai Exit 4',
+                phromName: 'Phrom Phong Branch',
+                phromInfo: 'Sukhumvit Soi 24',
+                dateLabel: 'Select Date',
+                timeLabel: 'Select Time',
+                roomText: 'Private Room',
+                hallText: 'Hall Tables',
+                room1Text: 'Room 1',
+                room1Capacity: 'Max 16 guests',
+                room2Text: 'Room 2',
+                room2Capacity: 'Max 6 (Ekamai) / 4 (Phrom Phong) guests',
+                floor1Text: '1st Floor',
+                floor2Text: '2nd Floor',
+                guestsLabel: 'Guests',
+                nameLabel: 'Name',
+                phoneLabel: 'Phone',
+                emailLabel: 'Email',
+                specialLabel: 'Special Requests',
+                submitBtn: 'Make Reservation',
+                loadingText: 'Processing reservation...',
+                successText: 'Reservation submitted successfully!',
+                errorText: 'Error processing reservation.',
+                required: '*'
+            }
+        };
+
+        // 현재 언어
+        let currentLang = 'ko';
+        let selectedBranch = '';
+        let selectedSpace = '';
+        let selectedDetail = '';
+
+        // 언어 변경
+        document.addEventListener('DOMContentLoaded', function() {
+            initializeForm();
+            generateTimeSlots();
+            
+            // 언어 버튼 이벤트
+            document.querySelectorAll('.lang-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.lang-btn').forEach(b => b.classList.remove('active'));
+                    this.classList.add('active');
+                    currentLang = this.dataset.lang;
+                    updateLanguage();
+                });
+            });
+
+            // 지점 선택 이벤트
+            document.querySelectorAll('.branch-card').forEach(card => {
+                card.addEventListener('click', function() {
+                    document.querySelectorAll('.branch-card').forEach(c => c.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedBranch = this.dataset.branch;
+                    document.getElementById('spaceOptions').classList.add('show');
+                    updateRoom2Capacity();
+                });
+            });
+
+            // 공간 유형 선택 이벤트
+            document.querySelectorAll('.space-btn').forEach(btn => {
+                btn.addEventListener('click', function() {
+                    document.querySelectorAll('.space-btn').forEach(b => b.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedSpace = this.dataset.space;
+                    
+                    if (selectedSpace === '룸') {
+                        document.getElementById('roomDetails').classList.add('show');
+                        document.getElementById('floorDetails').classList.remove('show');
+                    } else {
+                        document.getElementById('floorDetails').classList.add('show');
+                        document.getElementById('roomDetails').classList.remove('show');
+                    }
+                });
+            });
+
+            // 룸 선택 이벤트
+            document.querySelectorAll('[data-room]').forEach(card => {
+                card.addEventListener('click', function() {
+                    document.querySelectorAll('[data-room]').forEach(c => c.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedDetail = this.dataset.room;
+                });
+            });
+
+            // 층 선택 이벤트
+            document.querySelectorAll('[data-floor]').forEach(card => {
+                card.addEventListener('click', function() {
+                    document.querySelectorAll('[data-floor]').forEach(c => c.classList.remove('selected'));
+                    this.classList.add('selected');
+                    selectedDetail = this.dataset.floor;
+                });
+            });
+
+            // 시간 선택 이벤트
+            document.addEventListener('click', function(e) {
+                if (e.target.classList.contains('time-slot') && !e.target.classList.contains('unavailable')) {
+                    document.querySelectorAll('.time-slot').forEach(slot => slot.classList.remove('selected'));
+                    e.target.classList.add('selected');
+                    document.getElementById('selectedTime').value = e.target.dataset.time;
+                }
+            });
+
+            // 날짜 변경 시 시간 슬롯 업데이트
+            document.getElementById('date').addEventListener('change', function() {
+                generateTimeSlots();
+            });
+
+            // 폼 제출 이벤트
+            document.getElementById('reservationForm').addEventListener('submit', handleFormSubmit);
+        });
+
+        function initializeForm() {
+            // 최소 날짜를 오늘로 설정
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('date').setAttribute('min', today);
+        }
+
+        function updateLanguage() {
+            const t = translations[currentLang];
+            
+            document.title = t.pageTitle;
+            document.getElementById('page-title').textContent = t.pageTitle;
+            document.getElementById('subtitle').textContent = t.subtitle;
+            
+            document.getElementById('step1-title').textContent = t.step1Title;
+            document.getElementById('step2-title').textContent = t.step2Title;
+            document.getElementById('step3-title').textContent = t.step3Title;
+            document.getElementById('step4-title').textContent = t.step4Title;
+            document.getElementById('step5-title').textContent = t.step5Title;
+            
+            document.getElementById('ekamai-name').textContent = t.ekamaiName;
+            document.getElementById('ekamai-info').textContent = t.ekamaiInfo;
+            document.getElementById('phrom-name').textContent = t.phromName;
+            document.getElementById('phrom-info').textContent = t.phromInfo;
+            
+            document.getElementById('date-label').innerHTML = t.dateLabel + ' <span class="required">' + t.required + '</span>';
+            document.getElementById('time-label').innerHTML = t.timeLabel + ' <span class="required">' + t.required + '</span>';
+            
+            document.getElementById('room-text').textContent = t.roomText;
+            document.getElementById('hall-text').textContent = t.hallText;
+            document.getElementById('room1-text').textContent = t.room1Text;
+            document.getElementById('room1-capacity').textContent = t.room1Capacity;
+            document.getElementById('room2-text').textContent = t.room2Text;
+            updateRoom2Capacity();
+            document.getElementById('floor1-text').textContent = t.floor1Text;
+            document.getElementById('floor2-text').textContent = t.floor2Text;
+            
+            document.getElementById('guests-label').innerHTML = t.guestsLabel + ' <span class="required">' + t.required + '</span>';
+            document.getElementById('name-label').innerHTML = t.nameLabel + ' <span class="required">' + t.required + '</span>';
+            document.getElementById('phone-label').innerHTML = t.phoneLabel + ' <span class="required">' + t.required + '</span>';
+            document.getElementById('email-label').innerHTML = t.emailLabel + ' <span class="required">' + t.required + '</span>';
+            document.getElementById('special-label').textContent = t.specialLabel;
+            
+            document.getElementById('submitBtn').textContent = t.submitBtn;
+            document.getElementById('loading-text').textContent = t.loadingText;
+            document.getElementById('success-text').textContent = t.successText;
+            document.getElementById('error-text').textContent = t.errorText;
+        }
+
+        function updateRoom2Capacity() {
+            if (selectedBranch && document.getElementById('room2-capacity')) {
+                const t = translations[currentLang];
+                document.getElementById('room2-capacity').textContent = t.room2Capacity;
+            }
+        }
+
+        function generateTimeSlots() {
+            const timeGrid = document.getElementById('timeGrid');
+            timeGrid.innerHTML = '';
+            
+            // 영업시간: 11:00-15:00, 16:00-22:00
+            const morningSlots = [];
+            const eveningSlots = [];
+            
+            // 오전 슬롯 (11:00-15:00)
+            for (let hour = 11; hour < 15; hour++) {
+                for (let min = 0; min < 60; min += 30) {
+                    const time = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+                    morningSlots.push(time);
+                }
+            }
+            
+            // 저녁 슬롯 (16:00-22:00)
+            for (let hour = 16; hour < 22; hour++) {
+                for (let min = 0; min < 60; min += 30) {
+                    const time = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
+                    eveningSlots.push(time);
+                }
+            }
+            
+            [...morningSlots, ...eveningSlots].forEach(time => {
+                const slot = document.createElement('div');
+                slot.className = 'time-slot';
+                slot.textContent = time;
+                slot.dataset.time = time;
+                timeGrid.appendChild(slot);
+            });
+        }
+
+        async function handleFormSubmit(e) {
+            e.preventDefault();
+            
+            // 유효성 검사
+            if (!selectedBranch) {
+                alert(currentLang === 'ko' ? '지점을 선택해주세요.' : 
+                      currentLang === 'th' ? 'กรุณาเลือกสาขา' : 'Please select a branch.');
+                return;
+            }
+            
+            if (!selectedSpace) {
+                alert(currentLang === 'ko' ? '공간 유형을 선택해주세요.' : 
+                      currentLang === 'th' ? 'กรุณาเลือกประเภทพื้นที่' : 'Please select space type.');
+                return;
+            }
+            
+            if (!selectedDetail && selectedSpace === '룸') {
+                alert(currentLang === 'ko' ? '룸을 선택해주세요.' : 
+                      currentLang === 'th' ? 'กรุณาเลือกห้อง' : 'Please select a room.');
+                return;
+            }
+            
+            if (!selectedDetail && selectedSpace === '홀') {
+                alert(currentLang === 'ko' ? '층을 선택해주세요.' : 
+                      currentLang === 'th' ? 'กรุณาเลือกชั้น' : 'Please select a floor.');
+                return;
+            }
+            
+            if (!document.getElementById('selectedTime').value) {
+                alert(currentLang === 'ko' ? '시간을 선택해주세요.' : 
+                      currentLang === 'th' ? 'กรุณาเลือกเวลา' : 'Please select a time.');
+                return;
+            }
+            
+            // 로딩 표시
+            document.getElementById('reservationForm').style.display = 'none';
+            document.getElementById('loading').style.display = 'block';
+            
+            // 폼 데이터 수집
+            const formData = {
+                branch: selectedBranch,
+                date: document.getElementById('date').value,
+                time: document.getElementById('selectedTime').value,
+                spaceType: selectedSpace,
+                spaceDetail: selectedDetail,
+                guests: document.getElementById('guests').value,
+                name: document.getElementById('name').value,
+                phone: document.getElementById('phone').value,
+                email: document.getElementById('email').value,
+                specialRequest: document.getElementById('special-request').value,
+                language: currentLang
+            };
+            
+            try {
+                // n8n webhook URL 연결
+                const response = await fetch('https://n8n.57tb.art/webhook/bookmakgol-reservation', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify(formData)
+                });
+                
+                const result = await response.json();
+                
+                if (result.status === 'success') {
+                    document.getElementById('loading').style.display = 'none';
+                    document.getElementById('successMessage').style.display = 'block';
+                    document.getElementById('booking-number').textContent = 
+                        (currentLang === 'ko' ? '예약번호: ' : 
+                         currentLang === 'th' ? 'เลขที่การจอง: ' : 'Booking Number: ') + result.bookingNumber;
+                } else {
+                    throw new Error(result.message || 'Unknown error');
+                }
+            } catch (error) {
+                console.error('Error:', error);
+                document.getElementById('loading').style.display = 'none';
+                document.getElementById('errorMessage').style.display = 'block';
+                document.getElementById('reservationForm').style.display = 'block';
+            }
+        }
+    </script>
+</body>
+</html>
