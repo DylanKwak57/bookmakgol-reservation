@@ -1,0 +1,477 @@
+{
+  "name": "북막골_버튼처리시스템",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "GET",
+        "path": "bookmakgol-admin",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "1a2b3c4d-5e6f-7a8b-9c0d-1e2f3a4b5c6d",
+      "name": "관리자 버튼 Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        240,
+        300
+      ],
+      "webhookId": "bookmakgol-admin"
+    },
+    {
+      "parameters": {
+        "functionCode": "// URL 파라미터 파싱 및 액션 결정\nconst query = items[0].json.query || {};\nconst action = items[0].json.path.includes('/confirm') ? 'confirm' : 'cancel';\nconst bookingNumber = query.id;\n\nif (!bookingNumber) {\n  return [{\n    json: {\n      error: true,\n      message: 'Booking ID is required'\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    action: action,\n    bookingNumber: bookingNumber,\n    error: false\n  }\n}];"
+      },
+      "id": "2b3c4d5e-6f7a-8b9c-0d1e-2f3a4b5c6d7e",
+      "name": "액션 파싱",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        440,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.error}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "3c4d5e6f-7a8b-9c0d-1e2f-3a4b5c6d7e8f",
+      "name": "오류 체크",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        640,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"error\",\n  \"message\": \"{{$json.message}}\"\n}",
+        "options": {}
+      },
+      "id": "4d5e6f7a-8b9c-0d1e-2f3a-4b5c6d7e8f9a",
+      "name": "오류 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        840,
+        200
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": "284a2fb1-c15d-81a1-9d93-d4f47300f2e3",
+        "returnAll": false,
+        "limit": 1,
+        "filterType": "manual",
+        "matchType": "and",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Booking Number",
+              "condition": "equals",
+              "value": "={{$json.bookingNumber}}"
+            }
+          ]
+        }
+      },
+      "id": "5e6f7a8b-9c0d-1e2f-3a4b-5c6d7e8f9a0b",
+      "name": "예약 조회",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        840,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.length}}",
+              "operation": "equal",
+              "value2": 0
+            }
+          ]
+        }
+      },
+      "id": "6f7a8b9c-0d1e-2f3a-4b5c-6d7e8f9a0b1c",
+      "name": "예약 존재 확인",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1040,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "html",
+        "responseBody": "<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"UTF-8\">\n    <title>예약을 찾을 수 없습니다</title>\n    <style>\n        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; }\n        .error { color: #dc3545; }\n    </style>\n</head>\n<body>\n    <h2 class=\"error\">❌ 예약을 찾을 수 없습니다</h2>\n    <p>예약번호: {{$json.bookingNumber}}</p>\n    <p>이미 처리되었거나 존재하지 않는 예약입니다.</p>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "7a8b9c0d-1e2f-3a4b-5c6d-7e8f9a0b1c2d",
+      "name": "예약 없음 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1240,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.action}}",
+              "operation": "equal",
+              "value2": "confirm"
+            }
+          ]
+        }
+      },
+      "id": "8b9c0d1e-2f3a-4b5c-6d7e-8f9a0b1c2d3e",
+      "name": "액션 분기",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1240,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": "={{$json[1].id}}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status",
+              "selectValue": "Confirmed"
+            }
+          ]
+        }
+      },
+      "id": "9c0d1e2f-3a4b-5c6d-7e8f-9a0b1c2d3e4f",
+      "name": "예약 확정 업데이트",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": "={{$json[1].id}}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status",
+              "selectValue": "Cancelled"
+            }
+          ]
+        }
+      },
+      "id": "0d1e2f3a-4b5c-6d7e-8f9a-0b1c2d3e4f5a",
+      "name": "예약 취소 업데이트",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        1440,
+        600
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// 고객 정보 추출 및 이메일 데이터 준비\nconst reservationData = items[0].json[1];\nconst actionData = items[0].json[0];\nconst properties = reservationData.properties;\n\n// 기본 정보 추출\nconst bookingNumber = properties['Booking Number'].title[0].plain_text;\nconst dateTime = new Date(properties['Reservation DateTime'].date.start);\nconst branch = properties['Branch'].select.name;\nconst spaceType = properties['Space Type'].select.name;\nconst roomNumber = properties['Room Number']?.select?.name;\nconst floor = properties['Floor']?.select?.name;\nconst guests = properties['Guests'].number;\nconst name = properties['Name'].rich_text[0].plain_text;\nconst email = properties['Email'].email;\nconst language = properties['Language'].select.name;\nconst specialRequest = properties['Special Request']?.rich_text[0]?.plain_text || '';\n\n// 언어별 설정\nconst langCode = language === 'Korean' ? 'ko' : language === 'Thai' ? 'th' : 'en';\n\n// 날짜 포맷팅\nconst dateFormatted = {\n  ko: dateTime.toLocaleDateString('ko-KR', {\n    timeZone: 'Asia/Bangkok',\n    year: 'numeric',\n    month: 'long',\n    day: 'numeric',\n    weekday: 'long'\n  }),\n  th: dateTime.toLocaleDateString('th-TH', {\n    timeZone: 'Asia/Bangkok',\n    year: 'numeric',\n    month: 'long',\n    day: 'numeric',\n    weekday: 'long'\n  }),\n  en: dateTime.toLocaleDateString('en-US', {\n    timeZone: 'Asia/Bangkok',\n    year: 'numeric',\n    month: 'long',\n    day: 'numeric',\n    weekday: 'long'\n  })\n};\n\nconst timeFormatted = dateTime.toLocaleTimeString('en-US', {\n  timeZone: 'Asia/Bangkok',\n  hour: '2-digit',\n  minute: '2-digit',\n  hour12: false\n});\n\n// 지점 정보\nconst branchInfo = {\n  'Ekamai': {\n    ko: { name: '에까마이 지점', address: '에카마이 BTS 4번 출구, 수쿰윗 병원 맞은편', phone: '095-868-6826' },\n    th: { name: 'สาขาเอกมัย', address: 'BTS เอกมัย ทางออก 4 ตรงข้ามโรงพยาบาลสุขุมวิท', phone: '095-868-6826' },\n    en: { name: 'Ekamai Branch', address: 'BTS Ekamai Exit 4, opposite Sukhumvit Hospital', phone: '095-868-6826' }\n  },\n  'Phrom Phong': {\n    ko: { name: '프롬퐁 지점', address: '수쿰윗 소이 24, 아리스톤 호텔 1층', phone: '02-115-5500' },\n    th: { name: 'สาขาพร้อมพงษ์', address: 'สุขุมวิท ซอย 24 ชั้น 1 โรงแรมอริสตัน', phone: '02-115-5500' },\n    en: { name: 'Phrom Phong Branch', address: 'Sukhumvit Soi 24, 1st Floor Ariston Hotel', phone: '02-115-5500' }\n  }\n};\n\n// 공간 정보\nconst spaceInfo = {\n  ko: spaceType === 'Room' ? `룸 ${roomNumber}` : `홀 ${floor}`,\n  th: spaceType === 'Room' ? `ห้อง${roomNumber.replace('Room ', '')}` : `ชั้น${floor.replace('st Floor', '').replace('nd Floor', '')}`,\n  en: spaceType === 'Room' ? `${roomNumber}` : `${floor}`\n};\n\n// 구글맵 링크\nconst googleMapsLinks = {\n  'Ekamai': 'https://maps.google.com/?q=Ekamai+BTS+Station+Exit+4',\n  'Phrom Phong': 'https://maps.google.com/?q=Sukhumvit+Soi+24+Ariston+Hotel'\n};\n\nreturn [{\n  json: {\n    action: actionData.action,\n    bookingNumber,\n    name,\n    email,\n    language: langCode,\n    dateFormatted: dateFormatted[langCode],\n    timeFormatted,\n    branch,\n    branchInfo: branchInfo[branch][langCode],\n    spaceInfo: spaceInfo[langCode],\n    guests,\n    specialRequest,\n    googleMapsLink: googleMapsLinks[branch]\n  }\n}];"
+      },
+      "id": "1e2f3a4b-5c6d-7e8f-9a0b-1c2d3e4f5a6b",
+      "name": "이메일 데이터 준비",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1640,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$json.action}}",
+              "operation": "equal",
+              "value2": "confirm"
+            }
+          ]
+        }
+      },
+      "id": "2f3a4b5c-6d7e-8f9a-0b1c-2d3e4f5a6b7c",
+      "name": "이메일 분기",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1840,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// 확정 이메일 템플릿 생성 (기존 워크플로우 2와 동일)\nconst data = items[0].json;\n\nconst templates = {\n  ko: {\n    subject: `[북막골] 예약이 확정되었습니다 - ${data.bookingNumber}`,\n    body: `안녕하세요, ${data.name}님!\n\n북막골 ${data.branchInfo.name} 예약이 확정되었습니다.\n\n━━━━━━━━━━━━━━━━━━━━━\n📋 예약 정보\n━━━━━━━━━━━━━━━━━━━━━\n\n예약번호: ${data.bookingNumber}\n날짜: ${data.dateFormatted}\n시간: ${data.timeFormatted}\n지점: ${data.branchInfo.name}\n공간: ${data.spaceInfo}\n인원: ${data.guests}명\n\n━━━━━━━━━━━━━━━━━━━━━\n📍 오시는 길\n━━━━━━━━━━━━━━━━━━━━━\n\n${data.branchInfo.address}\n전화: ${data.branchInfo.phone}\n\n🗺️ 길찾기: ${data.googleMapsLink}\n\n━━━━━━━━━━━━━━━━━━━━━\n⚠️ 예약 안내\n━━━━━━━━━━━━━━━━━━━━━\n\n• 예약 취소/변경: 전화 또는 라인으로 연락주세요\n• 룸 예약: 평균 이용시간 3-4시간\n• 영업시간: 11:00-15:00, 16:00-22:00\n${data.specialRequest ? `• 특별요청: ${data.specialRequest}` : ''}\n\n맛있는 식사 준비하고 기다리겠습니다!\n\n감사합니다.\n북막골 드림`\n  },\n  th: {\n    subject: `[Bookmakgol] การจองของคุณได้รับการยืนยันแล้ว - ${data.bookingNumber}`,\n    body: `สวัสดีค่ะ/ครับ คุณ${data.name}!\n\nการจองของคุณที่ Bookmakgol ${data.branchInfo.name} ได้รับการยืนยันแล้ว\n\n━━━━━━━━━━━━━━━━━━━━━\n📋 ข้อมูลการจอง\n━━━━━━━━━━━━━━━━━━━━━\n\nเลขที่การจอง: ${data.bookingNumber}\nวันที่: ${data.dateFormatted}\nเวลา: ${data.timeFormatted}\nสาขา: ${data.branchInfo.name}\nพื้นที่: ${data.spaceInfo}\nจำนวน: ${data.guests} ท่าน\n\n━━━━━━━━━━━━━━━━━━━━━\n📍 ที่อยู่\n━━━━━━━━━━━━━━━━━━━━━\n\n${data.branchInfo.address}\nโทร: ${data.branchInfo.phone}\n\n🗺️ นำทาง: ${data.googleMapsLink}\n\n━━━━━━━━━━━━━━━━━━━━━\n⚠️ ข้อมูลการจอง\n━━━━━━━━━━━━━━━━━━━━━\n\n• ยกเลิก/เปลี่ยนแปลง: โทรหรือแจ้งทาง Line\n• การจองห้อง: เวลาใช้งานโดยเฉลี่ย 3-4 ชั่วโมง\n• เวลาเปิดให้บริการ: 11:00-15:00, 16:00-22:00\n${data.specialRequest ? `• ความต้องการพิเศษ: ${data.specialRequest}` : ''}\n\nเตรียมอาหารอร่อยรอคุณอยู่นะคะ/ครับ!\n\nขอบคุณค่ะ/ครับ\nBookmakgol`\n  },\n  en: {\n    subject: `[Bookmakgol] Your Reservation is Confirmed - ${data.bookingNumber}`,\n    body: `Hello ${data.name},\n\nYour reservation at Bookmakgol ${data.branchInfo.name} has been confirmed.\n\n━━━━━━━━━━━━━━━━━━━━━\n📋 Booking Information\n━━━━━━━━━━━━━━━━━━━━━\n\nBooking Number: ${data.bookingNumber}\nDate: ${data.dateFormatted}\nTime: ${data.timeFormatted}\nBranch: ${data.branchInfo.name}\nSpace: ${data.spaceInfo}\nParty Size: ${data.guests} guests\n\n━━━━━━━━━━━━━━━━━━━━━\n📍 Location\n━━━━━━━━━━━━━━━━━━━━━\n\n${data.branchInfo.address}\nPhone: ${data.branchInfo.phone}\n\n🗺️ Directions: ${data.googleMapsLink}\n\n━━━━━━━━━━━━━━━━━━━━━\n⚠️ Important Information\n━━━━━━━━━━━━━━━━━━━━━\n\n• Cancel/Modify: Please call or message via Line\n• Private Room: Average duration 3-4 hours\n• Operating Hours: 11:00-15:00, 16:00-22:00\n${data.specialRequest ? `• Special Requests: ${data.specialRequest}` : ''}\n\nWe look forward to serving you!\n\nBest regards,\nBookmakgol`\n  }\n};\n\nconst template = templates[data.language];\n\nreturn [{\n  json: {\n    ...data,\n    emailSubject: template.subject,\n    emailBody: template.body\n  }\n}];"
+      },
+      "id": "3a4b5c6d-7e8f-9a0b-1c2d-3e4f5a6b7c8d",
+      "name": "확정 이메일 템플릿",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        2040,
+        300
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// 취소 이메일 템플릿 생성\nconst data = items[0].json;\n\nconst templates = {\n  ko: {\n    subject: `[북막골] 예약이 취소되었습니다 - ${data.bookingNumber}`,\n    body: `안녕하세요, ${data.name}님.\n\n북막골 ${data.branchInfo.name} 예약이 취소되었습니다.\n\n━━━━━━━━━━━━━━━━━━━━━\n📋 취소된 예약 정보\n━━━━━━━━━━━━━━━━━━━━━\n\n예약번호: ${data.bookingNumber}\n날짜: ${data.dateFormatted}\n시간: ${data.timeFormatted}\n지점: ${data.branchInfo.name}\n공간: ${data.spaceInfo}\n인원: ${data.guests}명\n\n━━━━━━━━━━━━━━━━━━━━━\n📞 문의사항\n━━━━━━━━━━━━━━━━━━━━━\n\n취소 관련 문의사항이 있으시면 언제든지 연락주세요.\n\n전화: ${data.branchInfo.phone}\n\n다음에 더 좋은 서비스로 찾아뵙겠습니다.\n\n감사합니다.\n북막골 드림`\n  },\n  th: {\n    subject: `[Bookmakgol] การจองของคุณถูกยกเลิกแล้ว - ${data.bookingNumber}`,\n    body: `สวัสดีค่ะ/ครับ คุณ${data.name}\n\nการจองของคุณที่ Bookmakgol ${data.branchInfo.name} ถูกยกเลิกแล้ว\n\n━━━━━━━━━━━━━━━━━━━━━\n📋 ข้อมูลการจองที่ยกเลิก\n━━━━━━━━━━━━━━━━━━━━━\n\nเลขที่การจอง: ${data.bookingNumber}\nวันที่: ${data.dateFormatted}\nเวลา: ${data.timeFormatted}\nสาขา: ${data.branchInfo.name}\nพื้นที่: ${data.spaceInfo}\nจำนวน: ${data.guests} ท่าน\n\n━━━━━━━━━━━━━━━━━━━━━\n📞 สอบถามข้อมูล\n━━━━━━━━━━━━━━━━━━━━━\n\nหากมีข้อสงสัยเกี่ยวกับการยกเลิก กรุณาติดต่อเรา\n\nโทร: ${data.branchInfo.phone}\n\nขอบคุณสำหรับความเข้าใจ\nBookmakgol`\n  },\n  en: {\n    subject: `[Bookmakgol] Your Reservation has been Cancelled - ${data.bookingNumber}`,\n    body: `Hello ${data.name},\n\nYour reservation at Bookmakgol ${data.branchInfo.name} has been cancelled.\n\n━━━━━━━━━━━━━━━━━━━━━\n📋 Cancelled Booking Information\n━━━━━━━━━━━━━━━━━━━━━\n\nBooking Number: ${data.bookingNumber}\nDate: ${data.dateFormatted}\nTime: ${data.timeFormatted}\nBranch: ${data.branchInfo.name}\nSpace: ${data.spaceInfo}\nParty Size: ${data.guests} guests\n\n━━━━━━━━━━━━━━━━━━━━━\n📞 Contact Information\n━━━━━━━━━━━━━━━━━━━━━\n\nIf you have any questions about this cancellation, please contact us.\n\nPhone: ${data.branchInfo.phone}\n\nThank you for your understanding.\n\nBest regards,\nBookmakgol`\n  }\n};\n\nconst template = templates[data.language];\n\nreturn [{\n  json: {\n    ...data,\n    emailSubject: template.subject,\n    emailBody: template.body\n  }\n}];"
+      },
+      "id": "4b5c6d7e-8f9a-0b1c-2d3e-4f5a6b7c8d9e",
+      "name": "취소 이메일 템플릿",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        2040,
+        500
+      ]
+    },
+    {
+      "parameters": {
+        "sendTo": "={{$json.email}}",
+        "subject": "={{$json.emailSubject}}",
+        "emailType": "text",
+        "message": "={{$json.emailBody}}",
+        "options": {}
+      },
+      "id": "5c6d7e8f-9a0b-1c2d-3e4f-5a6b7c8d9e0f",
+      "name": "고객 이메일 발송",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [
+        2240,
+        400
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "html",
+        "responseBody": "<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"UTF-8\">\n    <title>처리 완료</title>\n    <style>\n        body { font-family: Arial, sans-serif; text-align: center; padding: 50px; background: #f8f9fa; }\n        .success { color: #28a745; }\n        .info { color: #17a2b8; }\n        .container { background: white; padding: 30px; border-radius: 10px; box-shadow: 0 2px 10px rgba(0,0,0,0.1); max-width: 500px; margin: 0 auto; }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <h2 class=\"success\">✅ 처리가 완료되었습니다!</h2>\n        <p><strong>예약번호:</strong> {{$json.bookingNumber}}</p>\n        <p><strong>고객:</strong> {{$json.name}}</p>\n        <p><strong>액션:</strong> {{$json.action === 'confirm' ? '예약 확정' : '예약 취소'}}</p>\n        <hr>\n        <p class=\"info\">고객에게 {{$json.action === 'confirm' ? '확정' : '취소'}} 이메일이 자동으로 발송되었습니다.</p>\n        <p>Notion 데이터베이스도 자동으로 업데이트되었습니다.</p>\n    </div>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "6d7e8f9a-0b1c-2d3e-4f5a-6b7c8d9e0f1a",
+      "name": "성공 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        2440,
+        400
+      ]
+    }
+  ],
+  "connections": {
+    "관리자 버튼 Webhook": {
+      "main": [
+        [
+          {
+            "node": "액션 파싱",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "액션 파싱": {
+      "main": [
+        [
+          {
+            "node": "오류 체크",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "오류 체크": {
+      "main": [
+        [
+          {
+            "node": "오류 응답",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "예약 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "예약 조회": {
+      "main": [
+        [
+          {
+            "node": "예약 존재 확인",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "예약 존재 확인": {
+      "main": [
+        [
+          {
+            "node": "예약 없음 응답",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "액션 분기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "액션 분기": {
+      "main": [
+        [
+          {
+            "node": "예약 확정 업데이트",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "예약 취소 업데이트",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "예약 확정 업데이트": {
+      "main": [
+        [
+          {
+            "node": "이메일 데이터 준비",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "예약 취소 업데이트": {
+      "main": [
+        [
+          {
+            "node": "이메일 데이터 준비",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "이메일 데이터 준비": {
+      "main": [
+        [
+          {
+            "node": "이메일 분기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "이메일 분기": {
+      "main": [
+        [
+          {
+            "node": "확정 이메일 템플릿",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "취소 이메일 템플릿",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "확정 이메일 템플릿": {
+      "main": [
+        [
+          {
+            "node": "고객 이메일 발송",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "취소 이메일 템플릿": {
+      "main": [
+        [
+          {
+            "node": "고객 이메일 발송",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "고객 이메일 발송": {
+      "main": [
+        [
+          {
+            "node": "성공 응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "active": true,
+  "settings": {
+    "timezone": "Asia/Bangkok"
+  },
+  "versionId": "1",
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "id": "bookmakgol-button-handler",
+  "tags": []
+}
+
