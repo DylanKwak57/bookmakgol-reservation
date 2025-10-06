@@ -885,13 +885,34 @@
             console.log('Selected Detail:', selectedDetail);
             console.log('Selected Time:', document.getElementById('selectedTime').value);
             
+            // 다국어 → 영어 변환
+            const spaceTypeEn = selectedSpace === '룸' ? 'Room' : 
+                               selectedSpace === '홀' ? 'Table' :
+                               selectedSpace === 'ห้องส่วนตัว' ? 'Room' :
+                               selectedSpace === 'โซนโต๊ะ' ? 'Table' :
+                               selectedSpace === 'Private Room' ? 'Room' :
+                               selectedSpace === 'Hall Tables' ? 'Table' : selectedSpace;
+                               
+            const spaceDetailEn = selectedDetail === '1번룸' ? 'Room 1' : 
+                                 selectedDetail === '2번룸' ? 'Room 2' :
+                                 selectedDetail === '1층' ? '1st Floor' :
+                                 selectedDetail === '2층' ? '2nd Floor' :
+                                 selectedDetail === 'ห้องที่ 1' ? 'Room 1' :
+                                 selectedDetail === 'ห้องที่ 2' ? 'Room 2' :
+                                 selectedDetail === 'ชั้น 1' ? '1st Floor' :
+                                 selectedDetail === 'ชั้น 2' ? '2nd Floor' :
+                                 selectedDetail === 'Room 1' ? 'Room 1' :
+                                 selectedDetail === 'Room 2' ? 'Room 2' :
+                                 selectedDetail === '1st Floor' ? '1st Floor' :
+                                 selectedDetail === '2nd Floor' ? '2nd Floor' : selectedDetail;
+            
             const formData = {
                 branch: selectedBranch || 'Ekamai',
                 date: document.getElementById('date').value,
                 time: document.getElementById('selectedTime').value || '18:00',
-                spaceType: selectedSpace || 'Room',
-                spaceDetail: selectedDetail || 'Room 1',
-                guests: document.getElementById('guests').value,
+                spaceType: spaceTypeEn || 'Room',
+                spaceDetail: spaceDetailEn || 'Room 1',
+                guests: parseInt(document.getElementById('guests').value),
                 name: document.getElementById('name').value,
                 phone: document.getElementById('phone').value,
                 email: document.getElementById('email').value,
