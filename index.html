@@ -968,6 +968,20 @@
                         'Phrom Phong': {ko: '프롬퐁 지점', th: 'สาขาพร้อมพงษ์', en: 'Phrom Phong Branch'}
                     };
                     
+                    // 지점별 연락처 정보
+                    const branchContacts = {
+                        'Ekamai': {
+                            ko: {phone: '095-868-6826', address: 'BTS 에까마이역 4번 출구'},
+                            th: {phone: '095-868-6826', address: 'BTS เอกมัย ทางออก 4'},
+                            en: {phone: '095-868-6826', address: 'BTS Ekamai Exit 4'}
+                        },
+                        'Phrom Phong': {
+                            ko: {phone: '02-115-5500', address: '수쿰윗 소이 24'},
+                            th: {phone: '02-115-5500', address: 'สุขุมวิท ซอย 24'},
+                            en: {phone: '02-115-5500', address: 'Sukhumvit Soi 24'}
+                        }
+                    };
+                    
                     // 공간 정보
                     const spaceNames = {
                         'Room 1': {ko: '1번룸', th: 'ห้องที่ 1', en: 'Room 1'},
@@ -976,6 +990,7 @@
                     };
                     
                     const branchName = branchNames[selectedBranch][currentLang];
+                    const branchContact = branchContacts[selectedBranch][currentLang];
                     
                     // 디버깅을 위한 로그
                     console.log('Debug - selectedDetail:', selectedDetail);
@@ -1004,14 +1019,16 @@
 • 시간: ${selectedTimeValue}
 • 공간: ${spaceName}
 • 인원: ${guestCount}명
-• 전화번호: ${customerPhone}
-• 이메일: ${customerEmail}
+
+📞 지점 연락처
+• 전화번호: ${branchContact.phone}
+• 주소: ${branchContact.address}
 
 📧 다음 단계
 관리자가 예약을 확인한 후 확정 이메일을 보내드립니다.
 확정까지 보통 1-2시간 소요됩니다.
 
-문의사항이 있으시면 전화로 연락주세요.`,
+문의사항이 있으시면 위 전화번호로 연락주세요.`,
                         th: `การจองของคุณ${customerName} สำเร็จแล้ว! 🎉
 
 📋 ข้อมูลการจอง
@@ -1021,14 +1038,16 @@
 • เวลา: ${selectedTimeValue}
 • พื้นที่: ${spaceName}
 • จำนวน: ${guestCount} ท่าน
-• เบอร์โทร: ${customerPhone}
-• อีเมล: ${customerEmail}
+
+📞 ข้อมูลติดต่อสาขา
+• เบอร์โทร: ${branchContact.phone}
+• ที่อยู่: ${branchContact.address}
 
 📧 ขั้นตอนถัดไป
 ผู้จัดการจะตรวจสอบและส่งอีเมลยืนยันให้คุณ
 ใช้เวลาประมาณ 1-2 ชั่วโมง
 
-หากมีข้อสงสัย กรุณาโทรสอบถาม`,
+หากมีข้อสงสัย กรุณาโทรสอบถามเบอร์ข้างบน`,
                         en: `${customerName}'s reservation submitted successfully! 🎉
 
 📋 Reservation Details
@@ -1038,14 +1057,16 @@
 • Time: ${selectedTimeValue}
 • Space: ${spaceName}
 • Guests: ${guestCount}
-• Phone: ${customerPhone}
-• Email: ${customerEmail}
+
+📞 Branch Contact
+• Phone: ${branchContact.phone}
+• Address: ${branchContact.address}
 
 📧 Next Steps
 Manager will review and send confirmation email.
 Usually takes 1-2 hours.
 
-For inquiries, please call us.`
+For inquiries, please call the number above.`
                     };
                     
                     document.getElementById('booking-number').innerHTML = successMessages[currentLang];
