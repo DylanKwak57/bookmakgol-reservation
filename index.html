@@ -994,10 +994,11 @@
                     
                     // 디버깅을 위한 로그
                     console.log('Debug - selectedDetail:', selectedDetail);
+                    console.log('Debug - spaceDetailEn:', spaceDetailEn);
                     console.log('Debug - currentLang:', currentLang);
-                    console.log('Debug - spaceNames[selectedDetail]:', spaceNames[selectedDetail]);
+                    console.log('Debug - spaceNames[spaceDetailEn]:', spaceNames[spaceDetailEn]);
                     
-                    const spaceName = spaceNames[selectedDetail] ? spaceNames[selectedDetail][currentLang] : selectedDetail;
+                    const spaceName = spaceNames[spaceDetailEn] ? spaceNames[spaceDetailEn][currentLang] : selectedDetail;
                     
                     console.log('Debug - final spaceName:', spaceName);
                     
