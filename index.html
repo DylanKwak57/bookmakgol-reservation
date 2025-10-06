@@ -970,11 +970,19 @@
                     const spaceNames = {
                         'Room 1': {ko: '1번룸', th: 'ห้องที่ 1', en: 'Room 1'},
                         'Room 2': {ko: '2번룸', th: 'ห้องที่ 2', en: 'Room 2'},
-                        'General Table': {ko: '일반 테이블', th: 'โต๊ะทั่วไป', en: 'General Table'}
+                        'General Table': {ko: '일반 테이블', th: 'โซนโต๊ะ', en: 'General Table'}
                     };
                     
                     const branchName = branchNames[selectedBranch][currentLang];
+                    
+                    // 디버깅을 위한 로그
+                    console.log('Debug - selectedDetail:', selectedDetail);
+                    console.log('Debug - currentLang:', currentLang);
+                    console.log('Debug - spaceNames[selectedDetail]:', spaceNames[selectedDetail]);
+                    
                     const spaceName = spaceNames[selectedDetail] ? spaceNames[selectedDetail][currentLang] : selectedDetail;
+                    
+                    console.log('Debug - final spaceName:', spaceName);
                     
                     // 날짜 포맷팅
                     const dateObj = new Date(selectedDate);
