@@ -12,9 +12,9 @@
         }
 
         body {
-            font-family: 'Noto Sans', -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
-            background: linear-gradient(135deg, #f5f3f0 0%, #e8e2d8 100%);
-            color: #4a3c28;
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(to bottom, #b0b0b0 0%, #9a9a9a 100%);
+            color: #2d2d2d;
             line-height: 1.6;
             min-height: 100vh;
         }
@@ -28,23 +28,25 @@
         .header {
             text-align: center;
             margin-bottom: 30px;
-            background: white;
-            border-radius: 20px;
             padding: 30px 20px;
-            box-shadow: 0 4px 20px rgba(74, 60, 40, 0.1);
+            background: rgba(255, 255, 255, 0.5);
+            border-radius: 20px;
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
         }
 
         .logo {
             font-size: 2.5rem;
-            font-weight: bold;
-            color: #8b4513;
+            font-weight: 700;
+            color: #2d2d2d;
             margin-bottom: 10px;
-            text-shadow: 2px 2px 4px rgba(0,0,0,0.1);
+            letter-spacing: 0.5px;
+            line-height: 1.4;
         }
 
         .subtitle {
             font-size: 1.1rem;
-            color: #6b5b47;
+            color: #2d2d2d;
             margin-bottom: 20px;
         }
 
@@ -56,28 +58,37 @@
         }
 
         .lang-btn {
-            padding: 8px 16px;
-            border: 2px solid #d4c4a8;
-            background: white;
-            color: #6b5b47;
-            border-radius: 25px;
+            background: #4a4a4a;
+            border: 2px solid #4a4a4a;
+            padding: 10px 20px;
+            border-radius: 10px;
+            font-size: 15px;
             cursor: pointer;
-            transition: all 0.3s ease;
-            font-size: 0.9rem;
+            transition: all 0.3s;
+            font-weight: 600;
+            color: white;
+        }
+
+        .lang-btn:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+            background: #3a3a3a;
         }
 
         .lang-btn.active {
-            background: #8b4513;
+            background: #2d2d2d;
             color: white;
-            border-color: #8b4513;
+            border-color: #2d2d2d;
         }
 
         .form-container {
-            background: white;
+            background: rgba(255, 255, 255, 0.5);
             border-radius: 20px;
             padding: 30px;
-            box-shadow: 0 4px 20px rgba(74, 60, 40, 0.1);
+            backdrop-filter: blur(10px);
+            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);
             margin-bottom: 20px;
+            border: 1px solid rgba(255, 255, 255, 0.3);
         }
 
         .form-section {
@@ -86,16 +97,17 @@
 
         .section-title {
             font-size: 1.2rem;
-            color: #8b4513;
+            color: #2d2d2d;
             margin-bottom: 15px;
             padding-bottom: 8px;
-            border-bottom: 2px solid #f0e6d2;
+            border-bottom: 2px solid #c8c8c8;
             display: flex;
             align-items: center;
+            font-weight: 600;
         }
 
         .section-number {
-            background: #8b4513;
+            background: #4a4a4a;
             color: white;
             width: 25px;
             height: 25px;
@@ -105,6 +117,7 @@
             justify-content: center;
             font-size: 0.9rem;
             margin-right: 10px;
+            font-weight: 600;
         }
 
         .form-group {
@@ -114,28 +127,29 @@
         label {
             display: block;
             margin-bottom: 5px;
-            font-weight: 500;
-            color: #4a3c28;
+            font-weight: 600;
+            color: #3a3a3a;
         }
 
         .required {
-            color: #d2691e;
+            color: #c17a7a;
         }
 
         input, select, textarea {
             width: 100%;
             padding: 12px;
-            border: 2px solid #e8e2d8;
+            border: 2px solid #d0d0d0;
             border-radius: 10px;
             font-size: 1rem;
-            transition: border-color 0.3s ease;
-            background: #fafafa;
+            transition: all 0.3s ease;
+            background: rgba(255, 255, 255, 0.8);
         }
 
         input:focus, select:focus, textarea:focus {
             outline: none;
-            border-color: #8b4513;
+            border-color: #4a4a4a;
             background: white;
+            box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
         .form-row {
@@ -152,23 +166,26 @@
         }
 
         .branch-card {
-            border: 2px solid #e8e2d8;
+            border: 2px solid #d0d0d0;
             border-radius: 15px;
             padding: 15px;
             text-align: center;
             cursor: pointer;
             transition: all 0.3s ease;
-            background: #fafafa;
+            background: rgba(255, 255, 255, 0.6);
+            backdrop-filter: blur(5px);
         }
 
         .branch-card:hover {
-            border-color: #8b4513;
-            background: white;
+            border-color: #4a4a4a;
+            background: rgba(255, 255, 255, 0.8);
+            transform: translateY(-2px);
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
         }
 
         .branch-card.selected {
-            border-color: #8b4513;
-            background: #8b4513;
+            border-color: #2d2d2d;
+            background: #4a4a4a;
             color: white;
         }
 
@@ -249,20 +266,21 @@
         .submit-btn {
             width: 100%;
             padding: 15px;
-            background: linear-gradient(135deg, #8b4513 0%, #a0522d 100%);
+            background: #4a4a4a;
             color: white;
-            border: none;
+            border: 2px solid #4a4a4a;
             border-radius: 15px;
             font-size: 1.1rem;
-            font-weight: bold;
+            font-weight: 600;
             cursor: pointer;
             transition: all 0.3s ease;
-            box-shadow: 0 4px 15px rgba(139, 69, 19, 0.3);
+            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);
         }
 
         .submit-btn:hover {
             transform: translateY(-2px);
-            box-shadow: 0 6px 20px rgba(139, 69, 19, 0.4);
+            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);
+            background: #3a3a3a;
         }
 
         .submit-btn:disabled {
@@ -337,8 +355,8 @@
         }
 
         .time-slot.selected {
-            border-color: #8b4513;
-            background: #8b4513;
+            border-color: #2d2d2d;
+            background: #4a4a4a;
             color: white;
         }
 
@@ -555,7 +573,7 @@
                 room1Text: '1번룸',
                 room1Capacity: '최대 16명',
                 room2Text: '2번룸',
-                room2Capacity: '최대 6명 (에까마이) / 4명 (프롬퐁)',
+                room2Capacity: '최대 6명',
                 floor1Text: '1층',
                 floor2Text: '2층',
                 guestsLabel: '인원',
@@ -584,11 +602,11 @@
                 dateLabel: 'เลือกวันที่',
                 timeLabel: 'เลือกเวลา',
                 roomText: 'ห้องส่วนตัว',
-                hallText: 'โต๊ะทั่วไป',
+                hallText: 'โซนโต๊ะ',
                 room1Text: 'ห้องที่ 1',
                 room1Capacity: 'สูงสุด 16 คน',
                 room2Text: 'ห้องที่ 2',
-                room2Capacity: 'สูงสุด 6 คน (เอกมัย) / 4 คน (พร้อมพงษ์)',
+                room2Capacity: 'สูงสุด 6 คน',
                 floor1Text: 'ชั้น 1',
                 floor2Text: 'ชั้น 2',
                 guestsLabel: 'จำนวนคน',
@@ -621,7 +639,7 @@
                 room1Text: 'Room 1',
                 room1Capacity: 'Max 16 guests',
                 room2Text: 'Room 2',
-                room2Capacity: 'Max 6 (Ekamai) / 4 (Phrom Phong) guests',
+                room2Capacity: 'Max 6 guests',
                 floor1Text: '1st Floor',
                 floor2Text: '2nd Floor',
                 guestsLabel: 'Guests',
@@ -772,8 +790,21 @@
 
         function updateRoom2Capacity() {
             if (selectedBranch && document.getElementById('room2-capacity')) {
-                const t = translations[currentLang];
-                document.getElementById('room2-capacity').textContent = t.room2Capacity;
+                const capacityByBranch = {
+                    'Ekamai': {
+                        ko: '최대 6명',
+                        th: 'สูงสุด 6 คน', 
+                        en: 'Max 6 guests'
+                    },
+                    'Phrom Phong': {
+                        ko: '최대 4명',
+                        th: 'สูงสุด 4 คน',
+                        en: 'Max 4 guests'
+                    }
+                };
+                
+                const capacity = capacityByBranch[selectedBranch][currentLang];
+                document.getElementById('room2-capacity').textContent = capacity;
             }
         }
 
