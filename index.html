@@ -879,13 +879,18 @@
             document.getElementById('reservationForm').style.display = 'none';
             document.getElementById('loading').style.display = 'block';
             
-            // 폼 데이터 수집
+            // 폼 데이터 수집 (디버깅 포함)
+            console.log('Selected Branch:', selectedBranch);
+            console.log('Selected Space:', selectedSpace);
+            console.log('Selected Detail:', selectedDetail);
+            console.log('Selected Time:', document.getElementById('selectedTime').value);
+            
             const formData = {
-                branch: selectedBranch,
+                branch: selectedBranch || 'Ekamai',
                 date: document.getElementById('date').value,
-                time: document.getElementById('selectedTime').value,
-                spaceType: selectedSpace,
-                spaceDetail: selectedDetail,
+                time: document.getElementById('selectedTime').value || '18:00',
+                spaceType: selectedSpace || 'Room',
+                spaceDetail: selectedDetail || 'Room 1',
                 guests: document.getElementById('guests').value,
                 name: document.getElementById('name').value,
                 phone: document.getElementById('phone').value,
@@ -893,6 +898,8 @@
                 specialRequest: document.getElementById('special-request').value,
                 language: currentLang
             };
+            
+            console.log('Form Data:', formData);
             
             try {
                 // n8n webhook URL 연결
