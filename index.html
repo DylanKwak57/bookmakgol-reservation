@@ -312,17 +312,41 @@
         }
 
         .message {
-            padding: 15px;
+            padding: 20px;
             border-radius: 10px;
             margin: 20px 0;
-            text-align: center;
+            text-align: left;
             display: none;
+            line-height: 1.6;
+            white-space: pre-line;
+            font-size: 0.95rem;
         }
 
         .success {
-            background: #d4edda;
-            border: 1px solid #c3e6cb;
+            background: linear-gradient(135deg, #d4edda 0%, #c8e6c9 100%);
+            border: 2px solid #28a745;
             color: #155724;
+            box-shadow: 0 4px 15px rgba(40, 167, 69, 0.2);
+            backdrop-filter: blur(5px);
+        }
+        
+        .success h3 {
+            color: #28a745;
+            margin-bottom: 15px;
+            font-size: 1.1rem;
+        }
+        
+        .success ul {
+            list-style: none;
+            padding: 0;
+            margin: 15px 0;
+        }
+        
+        .success li {
+            padding: 3px 0;
+            border-left: 3px solid #28a745;
+            padding-left: 10px;
+            margin: 5px 0;
         }
 
         .error {
@@ -569,7 +593,7 @@
                 dateLabel: '날짜 선택',
                 timeLabel: '시간 선택',
                 roomText: '룸 (개별 공간)',
-                hallText: '홀 (일반 테이블)',
+                hallText: '테이블',
                 room1Text: '1번룸',
                 room1Capacity: '최대 16명',
                 room2Text: '2번룸',
@@ -602,7 +626,7 @@
                 dateLabel: 'เลือกวันที่',
                 timeLabel: 'เลือกเวลา',
                 roomText: 'ห้องส่วนตัว',
-                hallText: 'โซนโต๊ะ',
+                hallText: 'โต๊ะทั่วไป',
                 room1Text: 'ห้องที่ 1',
                 room1Capacity: 'สูงสุด 16 คน',
                 room2Text: 'ห้องที่ 2',
@@ -635,7 +659,7 @@
                 dateLabel: 'Select Date',
                 timeLabel: 'Select Time',
                 roomText: 'Private Room',
-                hallText: 'Hall Tables',
+                hallText: 'Tables',
                 room1Text: 'Room 1',
                 room1Capacity: 'Max 16 guests',
                 room2Text: 'Room 2',
@@ -698,7 +722,9 @@
                         document.getElementById('roomDetails').classList.add('show');
                         document.getElementById('floorDetails').classList.remove('show');
                     } else {
-                        document.getElementById('floorDetails').classList.add('show');
+                        // 홀 선택 시 층 선택 없이 바로 완료
+                        selectedDetail = 'General Table';
+                        document.getElementById('floorDetails').classList.remove('show');
                         document.getElementById('roomDetails').classList.remove('show');
                     }
                 });
@@ -713,14 +739,7 @@
                 });
             });
 
-            // 층 선택 이벤트
-            document.querySelectorAll('[data-floor]').forEach(card => {
-                card.addEventListener('click', function() {
-                    document.querySelectorAll('[data-floor]').forEach(c => c.classList.remove('selected'));
-                    this.classList.add('selected');
-                    selectedDetail = this.dataset.floor;
-                });
-            });
+            // 층 선택 이벤트 제거 (더 이상 사용 안 함)
 
             // 시간 선택 이벤트
             document.addEventListener('click', function(e) {
@@ -863,11 +882,7 @@
                 return;
             }
             
-            if (!selectedDetail && selectedSpace === '홀') {
-                alert(currentLang === 'ko' ? '층을 선택해주세요.' : 
-                      currentLang === 'th' ? 'กรุณาเลือกชั้น' : 'Please select a floor.');
-                return;
-            }
+            // 홀 선택 시 층 선택 불필요 (자동으로 General Table 설정됨)
             
             if (!document.getElementById('selectedTime').value) {
                 alert(currentLang === 'ko' ? '시간을 선택해주세요.' : 
