@@ -760,8 +760,8 @@
         });
 
         function initializeForm() {
-            // 최소 날짜를 오늘로 설정 (2025년 10월 6일)
-            const today = '2025-10-06';
+            // 최소 날짜를 오늘로 동적 설정
+            const today = new Date().toISOString().split('T')[0];
             document.getElementById('date').setAttribute('min', today);
         }
 
@@ -835,19 +835,25 @@
             const morningSlots = [];
             const eveningSlots = [];
             
-            // 오전 슬롯 (11:00-15:00)
+            // 오전 슬롯 (11:00-15:00, 14:30 제외)
             for (let hour = 11; hour < 15; hour++) {
                 for (let min = 0; min < 60; min += 30) {
                     const time = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-                    morningSlots.push(time);
+                    // 14:30 제외
+                    if (time !== '14:30') {
+                        morningSlots.push(time);
+                    }
                 }
             }
             
-            // 저녁 슬롯 (16:00-22:00)
+            // 저녁 슬롯 (16:00-22:00, 21:30 제외)
             for (let hour = 16; hour < 22; hour++) {
                 for (let min = 0; min < 60; min += 30) {
                     const time = `${hour.toString().padStart(2, '0')}:${min.toString().padStart(2, '0')}`;
-                    eveningSlots.push(time);
+                    // 21:30 제외
+                    if (time !== '21:30') {
+                        eveningSlots.push(time);
+                    }
                 }
             }
             
