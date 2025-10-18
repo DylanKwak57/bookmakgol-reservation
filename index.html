@@ -421,7 +421,7 @@
     <div class="container">
         <div class="header">
             <div class="logo">북막골</div>
-            <div class="subtitle" id="subtitle">태국 전통 한식당 예약</div>
+            <div class="subtitle" id="subtitle">Reservation Service</div>
             
             <div class="language-selector">
                 <button class="lang-btn active" data-lang="ko">한국어</button>
@@ -580,7 +580,7 @@
         const translations = {
             ko: {
                 pageTitle: '북막골 예약 | Bookmakgol Reservation',
-                subtitle: '태국 전통 한식당 예약',
+                subtitle: 'Reservation Service',
                 step1Title: '지점 선택',
                 step2Title: '날짜 및 시간',
                 step3Title: '공간 선택',
@@ -613,7 +613,7 @@
             },
             th: {
                 pageTitle: 'จองโต๊ะ บุกมักกล | Bookmakgol Reservation',
-                subtitle: 'ร้านอาหารเกาหลีดั้งเดิมในประเทศไทย',
+                subtitle: 'Reservation Service',
                 step1Title: 'เลือกสาขา',
                 step2Title: 'วันที่และเวลา',
                 step3Title: 'เลือกพื้นที่',
@@ -646,7 +646,7 @@
             },
             en: {
                 pageTitle: 'Bookmakgol Reservation',
-                subtitle: 'Traditional Korean Restaurant in Thailand',
+                subtitle: 'Reservation Service',
                 step1Title: 'Select Branch',
                 step2Title: 'Date & Time',
                 step3Title: 'Select Space',
@@ -710,9 +710,9 @@
                     // 지점별 subtitle 동적 변경
                     const subtitle = document.getElementById('subtitle');
                     if (selectedBranch === 'Ekamai') {
-                        subtitle.textContent = '북막골 Fusion';
+                        subtitle.textContent = 'Bookmakgol Fusion Branch';
                     } else if (selectedBranch === 'Phrom Phong') {
-                        subtitle.textContent = '북막골 Gourmet';
+                        subtitle.textContent = 'Bookmakgol Gourmet Branch';
                     }
                     
                     document.getElementById('spaceOptions').classList.add('show');
