@@ -706,6 +706,15 @@
                     document.querySelectorAll('.branch-card').forEach(c => c.classList.remove('selected'));
                     this.classList.add('selected');
                     selectedBranch = this.dataset.branch;
+                    
+                    // 지점별 subtitle 동적 변경
+                    const subtitle = document.getElementById('subtitle');
+                    if (selectedBranch === 'Ekamai') {
+                        subtitle.textContent = '북막골 Fusion';
+                    } else if (selectedBranch === 'Phrom Phong') {
+                        subtitle.textContent = '북막골 Gourmet';
+                    }
+                    
                     document.getElementById('spaceOptions').classList.add('show');
                     updateRoom2Capacity();
                 });
