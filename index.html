@@ -153,6 +153,23 @@
             box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
         }
 
+        /* 날짜/시간 입력 필드 스타일 */
+        input[type="date"]::-webkit-calendar-picker-indicator,
+        input[type="time"]::-webkit-calendar-picker-indicator {
+            filter: invert(0.5);
+            cursor: pointer;
+        }
+
+        input[type="date"]::-webkit-datetime-edit,
+        input[type="time"]::-webkit-datetime-edit {
+            color: #2d2d2d;
+        }
+
+        input[type="date"]::-webkit-datetime-edit-fields-wrapper,
+        input[type="time"]::-webkit-datetime-edit-fields-wrapper {
+            color: #2d2d2d;
+        }
+
         .form-row {
             display: grid;
             grid-template-columns: 1fr 1fr;
@@ -175,6 +192,7 @@
             transition: all 0.3s ease;
             background: rgba(255, 255, 255, 0.6);
             backdrop-filter: blur(5px);
+            color: #2d2d2d;
         }
 
         .branch-card:hover {
@@ -225,6 +243,7 @@
             cursor: pointer;
             transition: all 0.3s ease;
             text-align: center;
+            color: #2d2d2d;
         }
 
         .space-btn.selected {
@@ -256,6 +275,7 @@
             cursor: pointer;
             transition: all 0.3s ease;
             background: #fafafa;
+            color: #2d2d2d;
         }
 
         .detail-card.selected {
