@@ -1,5 +1,5 @@
 {
-  "updatedAt": "2025-11-11T05:56:32.000Z",
+  "updatedAt": "2025-11-11T16:24:09.000Z",
   "createdAt": "2025-11-03T08:26:19.720Z",
   "id": "dDiWSm8cQZaADkIs",
   "name": "Bookmakgol_Book",
@@ -27,34 +27,14 @@
     },
     {
       "parameters": {
-        "functionCode": "// 데이터 검증 및 변환\nconst data = items[0].json.body || items[0].json;\n\nconsole.log('Received data:', data);\n\n// 필수 항목 체크 (실제 받은 필드명 기준)\nconst requiredFields = ['branch', 'date', 'time', 'spaceType', 'guests', 'name', 'phone', 'email', 'language'];\nconst missingFields = [];\n\nfor (const field of requiredFields) {\n  if (!data[field] || data[field].toString().trim() === '') {\n    missingFields.push(field);\n  }\n}\n\nconsole.log('Missing fields:', missingFields);\n\nif (missingFields.length > 0) {\n  return [{\n    json: {\n      error: true,\n      message: `Missing required fields: ${missingFields.join(', ')}`,\n      receivedData: data\n    }\n  }];\n}\n\n// 이메일 형식 검증\nconst emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\nif (!emailRegex.test(data.email)) {\n  return [{\n    json: {\n      error: true,\n      message: 'Invalid email format'\n    }\n  }];\n}\n\n// 날짜/시간 형식 변환\nconst dateTime = `${data.date}T${data.time}:00.000+07:00`; // Bangkok timezone\n\n// 예약번호 생성용 날짜 (YYYYMMDD)\nconst bookingDate = data.date.replace(/-/g, '');\n\n// 공간 정보 설정\nlet roomNumber = null;\nlet floor = null;\n\nif (data.spaceType === 'Room') {\n  roomNumber = data.spaceDetail;\n} else {\n  floor = data.spaceDetail;\n}\n\nreturn [{\n  json: {\n    ...data,\n    dateTime: dateTime,\n    bookingDate: bookingDate,\n    roomNumber: roomNumber,\n    floor: floor,\n    status: 'Pending',\n    reminderSent: false,\n    error: false\n  }\n}];"
+        "functionCode": "// 데이터 검증 및 변환\n\nconst data = items[0].json.body || items[0].json;\nconsole.log('Received data:', data);\n\n// 필수 항목 체크 (실제 받은 필드명 기준)\nconst requiredFields = ['branch', 'date', 'time', 'spaceType', 'guests', 'name', 'phone', 'email', 'language'];\nconst missingFields = [];\n\nfor (const field of requiredFields) {\n  if (!data[field] || data[field].toString().trim() === '') {\n    missingFields.push(field);\n  }\n}\n\nconsole.log('Missing fields:', missingFields);\n\nif (missingFields.length > 0) {\n  return [{\n    json: {\n      error: true,\n      message: `Missing required fields: ${missingFields.join(', ')}`,\n      receivedData: data\n    }\n  }];\n}\n\n// 이메일 형식 검증\nconst emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\nif (!emailRegex.test(data.email)) {\n  return [{\n    json: {\n      error: true,\n      message: 'Invalid email format'\n    }\n  }];\n}\n\n// 날짜/시간 형식 변환\nconst dateTime = `${data.date}T${data.time}:00.000+07:00`; // Bangkok timezone\n\n// 예약번호 생성용 날짜 (YYYYMMDD)\nconst bookingDate = data.date.replace(/-/g, '');\n\n// 공간 정보 설정\nlet roomNumber = null;\nlet floor = null;\n\nif (data.spaceType === 'Room') {\n  roomNumber = data.spaceDetail;\n} else {\n  floor = data.spaceDetail;\n}\n\n// 영수증 확인 (receiptBase64 포함)\nconst hasReceipt = data.receipt || data.depositReceipt || data.receiptBase64;\n\n// Status 결정 (Room + 영수증 있으면 즉시 Confirmed)\nconst status = (data.spaceType === 'Room' && hasReceipt) ? 'Confirmed' :\n               (data.spaceType === 'Table') ? 'Confirmed' : 'Pending';\n\nreturn [{\n  json: {\n    ...data,\n    dateTime: dateTime,\n    bookingDate: bookingDate,\n    roomNumber: roomNumber,\n    floor: floor,\n    status: status,\n    hasDepositReceipt: !!hasReceipt,\n    reminderSent: false,\n    error: false\n  }\n}];"
       },
       "id": "4db679c1-3544-4174-827d-9115a440b9d3",
       "name": "데이터 검증",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        -400,
-        112
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "boolean": [
-            {
-              "value1": "={{$json.error}}",
-              "value2": true
-            }
-          ]
-        }
-      },
-      "id": "a1295719-22ce-4283-980c-8f077287978d",
-      "name": "검증 오류 체크",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [
-        -192,
+        -384,
         112
       ]
     },
@@ -69,125 +49,21 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        0,
-        0
+        16,
+        -80
       ]
     },
     {
       "parameters": {
-        "resource": "databasePage",
-        "operation": "getAll",
-        "databaseId": {
-          "__rl": true,
-          "value": "284a2fb1-c15d-81a1-9d93-d4f47300f2e3",
-          "mode": "list",
-          "cachedResultName": "Bookmakgol Reservation Management",
-          "cachedResultUrl": "https://www.notion.so/284a2fb1c15d81a19d93d4f47300f2e3"
-        },
-        "limit": 100,
-        "filterType": "manual",
-        "matchType": "allFilters",
-        "filters": {
-          "conditions": [
-            {
-              "key": "Reservation DateTime|date",
-              "condition": "equals",
-              "date": "={{$json.dateTime}}"
-            },
-            {
-              "key": "Branch|select",
-              "condition": "equals",
-              "selectValue": "={{$json.branch}}"
-            },
-            {
-              "key": "Space Type|select",
-              "condition": "equals",
-              "selectValue": "={{$json.spaceType}}"
-            },
-            {
-              "key": "Status|select",
-              "condition": "does_not_equal",
-              "selectValue": "=Cancelled"
-            }
-          ]
-        },
-        "options": {}
-      },
-      "id": "fec3503e-b957-4d10-89d9-ff46db2491f5",
-      "name": "중복 예약 체크",
-      "type": "n8n-nodes-base.notion",
-      "typeVersion": 2,
-      "position": [
-        0,
-        208
-      ],
-      "alwaysOutputData": true,
-      "credentials": {
-        "notionApi": {
-          "id": "AU29qZb94H2pm2jL",
-          "name": "Notion account"
-        }
-      }
-    },
-    {
-      "parameters": {
-        "functionCode": "// 원본 데이터는 workflow의 다른 노드에서 가져오기\nconst inputData = $('검증 오류 체크').item.json;\nconst existingReservations = items.map(item => item.json);\n\nconsole.log('=== INPUT DATA (from 검증 오류 체크) ===');\nconsole.log(JSON.stringify(inputData, null, 2));\n\nconsole.log('=== EXISTING RESERVATIONS (from Notion) ===');\nconsole.log(JSON.stringify(existingReservations, null, 2));\n\nif (inputData.spaceType !== 'Room') {\n  return [{\n    json: {\n      ...inputData,\n      duplicateFound: false\n    }\n  }];\n}\n\n// 룸 예약 중복 체크\nconst duplicates = existingReservations.filter(reservation => {\n  return reservation.properties?.['Room Number']?.select?.name === inputData.roomNumber;\n});\n\nif (duplicates.length > 0) {\n  return [{\n    json: {\n      ...inputData,\n      duplicateFound: true,\n      duplicateMessage: `${inputData.branch} ${inputData.roomNumber}은(는) ${inputData.date} ${inputData.time}에 이미 예약되어 있습니다.`\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...inputData,\n    duplicateFound: false\n  }\n}];"
-      },
-      "id": "c04a2313-0de1-4f44-a66d-f9d27f5e4498",
-      "name": "중복 검사 로직",
-      "type": "n8n-nodes-base.function",
-      "typeVersion": 1,
-      "position": [
-        208,
-        208
-      ]
-    },
-    {
-      "parameters": {
-        "conditions": {
-          "boolean": [
-            {
-              "value1": "={{$json.duplicateFound}}",
-              "value2": true
-            }
-          ]
-        }
-      },
-      "id": "cdb95e40-2d23-4c3e-850a-a70c0ecf54b5",
-      "name": "중복 예약 확인",
-      "type": "n8n-nodes-base.if",
-      "typeVersion": 1,
-      "position": [
-        400,
-        208
-      ]
-    },
-    {
-      "parameters": {
-        "respondWith": "json",
-        "responseBody": "={\n  \"status\": \"error\",\n  \"message\": \"{{$json.duplicateMessage}}\"\n}",
-        "options": {}
-      },
-      "id": "fc7bf055-bc60-4062-804f-fd7d323bf852",
-      "name": "중복 오류 응답",
-      "type": "n8n-nodes-base.respondToWebhook",
-      "typeVersion": 1,
-      "position": [
-        608,
-        112
-      ]
-    },
-    {
-      "parameters": {
-        "functionCode": "// 예약번호 생성 (안전한 버전)\nconst data = items[0].json;\n\n// 안전한 날짜 처리\nlet dateForBooking = '';\nif (data.date) {\n  dateForBooking = data.date.replace(/-/g, '');\n} else if (data.bookingDate) {\n  dateForBooking = data.bookingDate;\n} else {\n  // 기본값 사용\n  const today = new Date();\n  dateForBooking = today.getFullYear() + \n    String(today.getMonth() + 1).padStart(2, '0') + \n    String(today.getDate()).padStart(2, '0');\n}\n\n// 시퀀스 번호 생성\nconst sequence = String(Date.now()).slice(-3);\n\n// 예약번호 생성\nconst bookingNumber = `BOOK-${dateForBooking}-${sequence}`;\n\nconsole.log('Generated booking number:', bookingNumber);\n\nreturn [{\n  json: {\n    ...data,\n    bookingNumber: bookingNumber\n  }\n}];"
+        "functionCode": "// 예약번호 생성 (원래 데이터 유지)\nconst uploadFileData = items[0].json; // Google Drive 파일 정보 (Table 예약일 경우 없을 수 있음)\nconst originalData = $('데이터 검증').item.json; // 원래 예약 데이터\n\nconsole.log('===== 예약번호 생성 시작 =====');\nconsole.log('uploadFileData:', JSON.stringify(uploadFileData, null, 2));\nconsole.log('originalData:', JSON.stringify(originalData, null, 2));\n\n// 원래 데이터 사용 (Upload file 데이터는 파일 정보만)\nconst data = originalData;\n\n// 안전한 날짜 처리\nlet dateForBooking = '';\nif (data.date) {\n  dateForBooking = data.date.replace(/-/g, '');\n} else if (data.bookingDate) {\n  dateForBooking = data.bookingDate;\n} else {\n  const today = new Date();\n  dateForBooking = today.getFullYear() +\n    String(today.getMonth() + 1).padStart(2, '0') +\n    String(today.getDate()).padStart(2, '0');\n}\n\n// 시퀀스 번호 생성\nconst sequence = String(Date.now()).slice(-3);\n\n// 예약번호 생성\nconst bookingNumber = `BOOK-${dateForBooking}-${sequence}`;\n\nconsole.log('Generated booking number:', bookingNumber);\n\n// Deposit Receipt 파일 배열 생성 (Notion 노드에서 바로 사용 가능)\nlet depositReceiptFiles = [];\n\n// Room 예약이고 Upload file 노드가 성공한 경우에만 파일 정보 추가\nif (data.spaceType === 'Room' && uploadFileData && uploadFileData.name && uploadFileData.webViewLink) {\n  depositReceiptFiles = [{\n    name: uploadFileData.name || 'receipt',\n    url: uploadFileData.webViewLink\n  }];\n}\n\n// Table 예약이거나 영수증이 없으면 빈 배열 []\n\n// 출력 데이터 생성: 원래 데이터 + 예약번호 + Deposit Receipt 파일 배열\nconst outputData = {\n  ...data,\n  bookingNumber: bookingNumber,\n  depositReceiptFiles: depositReceiptFiles  // Notion 노드에서 바로 사용 가능한 형태\n};\n\nconsole.log('===== 출력 데이터 =====');\nconsole.log('outputData:', JSON.stringify(outputData, null, 2));\n\nreturn [{\n  json: outputData\n}];"
       },
       "id": "270a54dd-ba8c-4960-90e4-8c8b505ce5bb",
       "name": "예약번호 생성",
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        608,
-        304
+        416,
+        288
       ]
     },
     {
@@ -200,41 +76,41 @@
           "cachedResultName": "Bookmakgol Reservation Management",
           "cachedResultUrl": "https://www.notion.so/284a2fb1c15d81a19d93d4f47300f2e3"
         },
-        "title": "={{$json.bookingNumber}}",
+        "title": "={{$('예약번호 생성').item.json.bookingNumber}}",
         "propertiesUi": {
           "propertyValues": [
             {
               "key": "Reservation DateTime|date",
-              "date": "={{$json.dateTime}}",
+              "date": "={{$('예약번호 생성').item.json.dateTime}}",
               "timezone": "Asia/Bangkok"
             },
             {
               "key": "Branch|select",
-              "selectValue": "={{$json.branch}}"
+              "selectValue": "={{$('예약번호 생성').item.json.branch}}"
             },
             {
               "key": "Space Type|select",
-              "selectValue": "={{$json.spaceType}}"
+              "selectValue": "={{$('예약번호 생성').item.json.spaceType}}"
             },
             {
               "key": "Room Number|select",
-              "selectValue": "={{$json.roomNumber}}"
+              "selectValue": "={{ $('예약번호 생성').item.json.spaceType === 'Room' ? $('예약번호 생성').item.json.roomNumber : 'General Table' }}"
             },
             {
               "key": "Guests|number",
-              "numberValue": "={{$json.guests}}"
+              "numberValue": "={{Number($('예약번호 생성').item.json.guests)}}"
             },
             {
               "key": "Phone|phone_number",
-              "phoneValue": "={{$json.phone}}"
+              "phoneValue": "={{$('예약번호 생성').item.json.phone}}"
             },
             {
               "key": "Email|email",
-              "emailValue": "={{$json.email}}"
+              "emailValue": "={{$('예약번호 생성').item.json.email}}"
             },
             {
               "key": "Language|select",
-              "selectValue": "={{$json.language === 'ko' ? 'Korean' : $json.language === 'th' ? 'Thai' : 'English'}}"
+              "selectValue": "={{$('예약번호 생성').item.json.language === 'ko' ? 'Korean' : $('예약번호 생성').item.json.language === 'th' ? 'Thai' : 'English'}}"
             },
             {
               "key": "Status|select",
@@ -245,11 +121,22 @@
             },
             {
               "key": "Name|rich_text",
-              "textContent": "={{$json.name}}"
+              "textContent": "={{$('예약번호 생성').item.json.name}}"
             },
             {
               "key": "Special Request|rich_text",
-              "textContent": "={{$json.specialRequest}}"
+              "textContent": "={{$('예약번호 생성').item.json.specialRequest}}"
+            },
+            {
+              "key": "Deposit Receipt|files",
+              "fileUrls": {
+                "fileUrl": [
+                  {
+                    "name": "={{$('Upload file').item.json.name}}",
+                    "url": "={{$('Upload file').item.json.webViewLink}}"
+                  }
+                ]
+              }
             }
           ]
         },
@@ -260,8 +147,8 @@
       "type": "n8n-nodes-base.notion",
       "typeVersion": 2,
       "position": [
-        800,
-        304
+        608,
+        288
       ],
       "credentials": {
         "notionApi": {
@@ -279,8 +166,8 @@
       "type": "n8n-nodes-base.function",
       "typeVersion": 1,
       "position": [
-        1008,
-        304
+        816,
+        288
       ]
     },
     {
@@ -291,12 +178,7 @@
         "htmlMessage": "={{$json.adminEmailBody}}",
         "message": "=",
         "toList": [
-          "dylan@57tb.art",
-          "kurumisakamoto678@gmail.com",
-          "rtnp1345@gmail.com",
-          "nollnann9@gmail.com",
-          "phannipha2609@gmail.com",
-          "alpinemember3105@gmail.com"
+          "dylan@57tb.art"
         ],
         "additionalFields": {}
       },
@@ -305,8 +187,8 @@
       "type": "n8n-nodes-base.gmail",
       "typeVersion": 1,
       "position": [
-        1200,
-        304
+        1024,
+        288
       ],
       "credentials": {
         "gmailOAuth2": {
@@ -318,7 +200,7 @@
     {
       "parameters": {
         "respondWith": "json",
-        "responseBody": "={\n  \"status\": \"success\",\n  \"bookingNumber\": \"{{$node['예약번호 생성'].json['bookingNumber']}}\",\n  \"customerName\": \"{{$node['예약번호 생성'].json['name']}}\",\n  \"branch\": \"{{$node['예약번호 생성'].json['branch']}}\",\n  \"branchPhone\": \"{{$node['예약번호 생성'].json['branch'] === 'Ekamai' ? '095-868-6826' : '02-115-5500'}}\",\n  \"date\": \"{{$node['예약번호 생성'].json['date']}}\",\n  \"time\": \"{{$node['예약번호 생성'].json['time']}}\",\n  \"spaceType\": \"{{$node['예약번호 생성'].json['spaceType']}}\",\n  \"spaceDetail\": \"{{$node['예약번호 생성'].json['roomNumber'] || $node['예약번호 생성'].json['floor'] || 'General Table'}}\",\n  \"guests\": \"{{$node['예약번호 생성'].json['guests']}}\",\n  \"language\": \"{{$node['예약번호 생성'].json['language']}}\",\n  \"message\": \"예약이 성공적으로 접수되었습니다.\"\n}",
+        "responseBody": "={{ {\n  \"status\": \"success\",\n  \"bookingNumber\": $node['예약번호 생성'].json.bookingNumber,\n  \"customerName\": $node['예약번호 생성'].json.name,\n  \"branch\": $node['예약번호 생성'].json.branch,\n  \"branchPhone\": $node['예약번호 생성'].json.branch === 'Ekamai' ? '095-868-6826' : '02-115-5500',\n  \"date\": $node['예약번호 생성'].json.date,\n  \"time\": $node['예약번호 생성'].json.time,\n  \"spaceType\": $node['예약번호 생성'].json.spaceType,\n  \"spaceDetail\": $node['예약번호 생성'].json.roomNumber || $node['예약번호 생성'].json.floor || 'General Table',\n  \"guests\": $node['예약번호 생성'].json.guests,\n  \"language\": $node['예약번호 생성'].json.language,\n  \"message\": \"예약이 성공적으로 접수되었습니다.\"\n} }}",
         "options": {}
       },
       "id": "c8bd80f0-dcb1-40bf-b08c-34a755e89843",
@@ -326,8 +208,8 @@
       "type": "n8n-nodes-base.respondToWebhook",
       "typeVersion": 1,
       "position": [
-        1408,
-        304
+        1232,
+        288
       ]
     },
     {
@@ -952,7 +834,7 @@
     },
     {
       "parameters": {
-        "functionCode": "// 🎯 예약된 시간을 3시간 블록으로 계산\nconst items = $input.all();\nconst bookedTimes = [];\nconst blockedSlots = new Set();\n\n// 예약된 시간 추출\nfor (const item of items) {\n  const properties = item.json.properties;\n  \n  // Time 필드에서 시간 추출 (예: \"18:00\")\n  const timeValue = properties.Time?.rich_text?.[0]?.plain_text || \n                    properties.Time?.title?.[0]?.plain_text ||\n                    properties['Reservation DateTime']?.date?.start?.split('T')[1]?.substring(0, 5);\n  \n  if (timeValue) {\n    bookedTimes.push(timeValue);\n    \n    // 3시간 블록 계산 (시작 30분 전부터 종료 30분 후까지)\n    const [hour, minute] = timeValue.split(':').map(Number);\n    const startMinutes = hour * 60 + minute;\n    \n    // 시작 30분 전부터 종료 30분 후까지 블록 (총 4시간)\n    // 예: 18:00 예약 → 17:30, 18:00, 18:30, 19:00, 19:30, 20:00, 20:30, 21:00 블록\n    for (let offset = -30; offset <= 210; offset += 30) {\n      const totalMinutes = startMinutes + offset;\n      const blockHour = Math.floor(totalMinutes / 60);\n      const blockMinute = totalMinutes % 60;\n      \n      if (blockHour >= 0 && blockHour < 24) {\n        const timeSlot = `${blockHour.toString().padStart(2, '0')}:${blockMinute.toString().padStart(2, '0')}`;\n        blockedSlots.add(timeSlot);\n      }\n    }\n  }\n}\n\n// Set을 Array로 변환하고 정렬\nconst blockedArray = Array.from(blockedSlots).sort();\n\nreturn {\n  json: {\n    date: $('Parse Query Parameters').item.json.date,\n    branch: $('Parse Query Parameters').item.json.branch,\n    room: $('Parse Query Parameters').item.json.room,\n    bookedTimes: bookedTimes.sort(),\n    blockedSlots: blockedArray,\n    totalReservations: bookedTimes.length,\n    totalBlockedSlots: blockedArray.length\n  }\n};"
+        "functionCode": "// 🎯 예약된 시간을 3시간 블록으로 계산 (브레이크 타임 고려)\nconst items = $input.all();\nconst bookedTimes = [];\nconst blockedSlots = new Set();\n\n// 브레이크 타임: 15:00-16:00\nconst BREAK_START_MINUTES = 15 * 60; // 900분\nconst BREAK_END_MINUTES = 16 * 60; // 960분\n\n// 데이터가 없으면 빈 결과 반환\nif (!items || items.length === 0) {\n  return {\n    json: {\n      date: $('Parse Query Parameters').item.json.date,\n      branch: $('Parse Query Parameters').item.json.branch,\n      room: $('Parse Query Parameters').item.json.room,\n      bookedTimes: [],\n      blockedSlots: [],\n      totalReservations: 0,\n      totalBlockedSlots: 0,\n      message: 'No existing reservations found'\n    }\n  };\n}\n\n// 예약된 시간 추출\nfor (const item of items) {\n  // 데이터 체크\n  if (!item.json) {\n    continue;\n  }\n  \n  // property_reservation_date_time 필드에서 시간 추출\n  const dateTimeValue = item.json.property_reservation_date_time?.start;\n  \n  if (dateTimeValue) {\n    // ISO 8601 형식에서 시간 추출 (HH:MM)\n    const timeValue = dateTimeValue.split('T')[1]?.substring(0, 5);\n    \n    if (timeValue) {\n      bookedTimes.push(timeValue);\n      \n      // 3시간 블록 계산 (프론트엔드 calculateAvailableHours 로직과 동일)\n      const [hour, minute] = timeValue.split(':').map(Number);\n      const startMinutes = hour * 60 + minute;\n      \n      // 기본 종료 시간: 시작 시간 + 3시간\n      let endMinutes = startMinutes + 180;\n      \n      // 브레이크 타임 체크: 시작 시간이 브레이크 타임 이전이고 종료 시간이 브레이크 타임 이후면 브레이크 타임까지만 사용\n      if (startMinutes < BREAK_START_MINUTES && endMinutes > BREAK_START_MINUTES) {\n        endMinutes = BREAK_START_MINUTES; // 브레이크 타임(15:00)까지만 블록\n      }\n      \n      // 영업 종료 시간 체크 (22:00)\n      const closeMinutes = 22 * 60;\n      if (endMinutes > closeMinutes) {\n        endMinutes = closeMinutes;\n      }\n      \n      // 시작 시간부터 종료 시간까지 30분 단위로 블록\n      for (let offset = 0; offset <= (endMinutes - startMinutes); offset += 30) {\n        const totalMinutes = startMinutes + offset;\n        const blockHour = Math.floor(totalMinutes / 60);\n        const blockMinute = totalMinutes % 60;\n        \n        if (blockHour >= 0 && blockHour < 24) {\n          const timeSlot = `${blockHour.toString().padStart(2, '0')}:${blockMinute.toString().padStart(2, '0')}`;\n          blockedSlots.add(timeSlot);\n        }\n      }\n    }\n  }\n}\n\n// Set을 Array로 변환하고 정렬\nconst blockedArray = Array.from(blockedSlots).sort();\n\nreturn {\n  json: {\n    date: $('Parse Query Parameters').item.json.date,\n    branch: $('Parse Query Parameters').item.json.branch,\n    room: $('Parse Query Parameters').item.json.room,\n    bookedTimes: bookedTimes.sort(),\n    blockedSlots: blockedArray,\n    totalReservations: bookedTimes.length,\n    totalBlockedSlots: blockedArray.length\n  }\n};"
       },
       "id": "e0e4b515-b89f-4371-8a3c-8840c5a4017c",
       "name": "Calculate Blocked Time Slots",
@@ -967,24 +849,7 @@
       "parameters": {
         "respondWith": "json",
         "responseBody": "={{ $json }}",
-        "options": {
-          "responseHeaders": {
-            "entries": [
-              {
-                "name": "Content-Type",
-                "value": "application/json"
-              },
-              {
-                "name": "Access-Control-Allow-Origin",
-                "value": "*"
-              },
-              {
-                "name": "Access-Control-Allow-Methods",
-                "value": "GET, OPTIONS"
-              }
-            ]
-          }
-        }
+        "options": {}
       },
       "id": "34002384-61c2-45b2-ac3a-8925d4bdbe55",
       "name": "Respond to Webhook",
@@ -993,6 +858,325 @@
       "position": [
         192,
         1632
+      ]
+    },
+    {
+      "parameters": {
+        "inputDataFieldName": "receipt",
+        "name": "={{$json.name}}_{{$json.date}}_receipt",
+        "driveId": {
+          "__rl": true,
+          "mode": "list",
+          "value": "My Drive"
+        },
+        "folderId": {
+          "__rl": true,
+          "value": "1k9SNhfjBnG9iYAPdTuZiAPINWwsBHQ0Q",
+          "mode": "list",
+          "cachedResultName": "Bookmakgol Receipts",
+          "cachedResultUrl": "https://drive.google.com/drive/folders/1k9SNhfjBnG9iYAPdTuZiAPINWwsBHQ0Q"
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.googleDrive",
+      "typeVersion": 3,
+      "position": [
+        224,
+        288
+      ],
+      "id": "f962389f-f81e-4a05-a150-d195d6215e34",
+      "name": "Upload file",
+      "alwaysOutputData": false,
+      "credentials": {
+        "googleDriveOAuth2Api": {
+          "id": "iuDVshN9wj2YmmpN",
+          "name": "Dylan Google Drive account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "jsCode": "// Base64를 Binary로 변환\nconst data = items[0].json;\n\n// Room 예약이고 영수증 Base64가 있는 경우\nif (data.receiptBase64) {\n  console.log('Converting Base64 to Binary for file:', data.receiptFileName);\n  \n  return [{\n    json: data,\n    binary: {\n      receipt: {\n        data: data.receiptBase64,\n        mimeType: data.receiptMimeType || 'image/jpeg',\n        fileName: data.receiptFileName || 'receipt.jpg'\n      }\n    }\n  }];\n}\n\n// Table 예약이거나 영수증이 없는 경우\nconsole.log('No receipt file, passing through');\nreturn [{\n  json: data\n}];"
+      },
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [
+        16,
+        288
+      ],
+      "id": "3ff61088-16c7-4a00-bd0f-7e38a76041e1",
+      "name": "Convert Base64 to Binary"
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "subject": "={{$json.adminEmailSubject}}",
+        "includeHtml": true,
+        "htmlMessage": "={{$json.adminEmailBody}}",
+        "message": "=",
+        "toList": [
+          "dylan@57tb.art",
+          "kurumisakamoto678@gmail.com",
+          "rtnp1345@gmail.com",
+          "nollnann9@gmail.com",
+          "phannipha2609@gmail.com",
+          "alpinemember3105@gmail.com"
+        ],
+        "additionalFields": {}
+      },
+      "id": "c1c1f544-1c57-4460-bd22-99f87c7189be",
+      "name": "관리자 이메일 발송1",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [
+        1616,
+        80
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "unDkKIDCn6d2hi5Z",
+          "name": "Bookmagol Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "rules": {
+          "values": [
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "leftValue": "={{ $json.error }}",
+                    "rightValue": "true",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    },
+                    "id": "8dab89e2-321e-4adf-b786-b13bdc69f509"
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "error"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "5479cdb4-2922-4ad6-b902-484394708ac2",
+                    "leftValue": "={{ $json.spaceType === 'Table' }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "table"
+            },
+            {
+              "conditions": {
+                "options": {
+                  "caseSensitive": true,
+                  "leftValue": "",
+                  "typeValidation": "strict",
+                  "version": 2
+                },
+                "conditions": [
+                  {
+                    "id": "951b7bbc-922d-4564-a60b-689ebf74847f",
+                    "leftValue": "={{ $json.spaceType === 'Room' && $json.hasDepositReceipt }}",
+                    "rightValue": "",
+                    "operator": {
+                      "type": "boolean",
+                      "operation": "true",
+                      "singleValue": true
+                    }
+                  }
+                ],
+                "combinator": "and"
+              },
+              "renameOutput": true,
+              "outputKey": "Room"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3.3,
+      "position": [
+        -192,
+        96
+      ],
+      "id": "80eb67ff-3eff-4e2a-a7e6-afc05072501d",
+      "name": "예약 타입 분기"
+    },
+    {
+      "parameters": {
+        "functionCode": "// 예약번호 생성 (원래 데이터 유지)\nconst uploadFileData = items[0].json; // Google Drive 파일 정보 (Table 예약일 경우 없을 수 있음)\nconst originalData = $('데이터 검증').item.json; // 원래 예약 데이터\n\nconsole.log('===== 예약번호 생성 시작 =====');\nconsole.log('uploadFileData:', JSON.stringify(uploadFileData, null, 2));\nconsole.log('originalData:', JSON.stringify(originalData, null, 2));\n\n// 원래 데이터 사용 (Upload file 데이터는 파일 정보만)\nconst data = originalData;\n\n// 안전한 날짜 처리\nlet dateForBooking = '';\nif (data.date) {\n  dateForBooking = data.date.replace(/-/g, '');\n} else if (data.bookingDate) {\n  dateForBooking = data.bookingDate;\n} else {\n  const today = new Date();\n  dateForBooking = today.getFullYear() +\n    String(today.getMonth() + 1).padStart(2, '0') +\n    String(today.getDate()).padStart(2, '0');\n}\n\n// 시퀀스 번호 생성\nconst sequence = String(Date.now()).slice(-3);\n\n// 예약번호 생성\nconst bookingNumber = `BOOK-${dateForBooking}-${sequence}`;\n\nconsole.log('Generated booking number:', bookingNumber);\n\n// Deposit Receipt 파일 배열 생성 (Notion 노드에서 바로 사용 가능)\nlet depositReceiptFiles = [];\n\n// Room 예약이고 Upload file 노드가 성공한 경우에만 파일 정보 추가\nif (data.spaceType === 'Room' && uploadFileData && uploadFileData.name && uploadFileData.webViewLink) {\n  depositReceiptFiles = [{\n    name: uploadFileData.name || 'receipt',\n    url: uploadFileData.webViewLink\n  }];\n}\n\n// Table 예약이거나 영수증이 없으면 빈 배열 []\n\n// 출력 데이터 생성: 원래 데이터 + 예약번호 + Deposit Receipt 파일 배열\nconst outputData = {\n  ...data,\n  bookingNumber: bookingNumber,\n  depositReceiptFiles: depositReceiptFiles  // Notion 노드에서 바로 사용 가능한 형태\n};\n\nconsole.log('===== 출력 데이터 =====');\nconsole.log('outputData:', JSON.stringify(outputData, null, 2));\n\nreturn [{\n  json: outputData\n}];"
+      },
+      "id": "57b4c46e-1fcd-4344-9032-3dadd83f14e4",
+      "name": "예약번호 생성1",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        16,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "284a2fb1-c15d-81a1-9d93-d4f47300f2e3",
+          "mode": "list",
+          "cachedResultName": "Bookmakgol Reservation Management",
+          "cachedResultUrl": "https://www.notion.so/284a2fb1c15d81a19d93d4f47300f2e3"
+        },
+        "title": "={{$('예약번호 생성1').item.json.bookingNumber}}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Reservation DateTime|date",
+              "date": "={{$('예약번호 생성1').item.json.dateTime}}",
+              "timezone": "Asia/Bangkok"
+            },
+            {
+              "key": "Branch|select",
+              "selectValue": "={{$('예약번호 생성1').item.json.branch}}"
+            },
+            {
+              "key": "Space Type|select",
+              "selectValue": "={{$('예약번호 생성1').item.json.spaceType}}"
+            },
+            {
+              "key": "Room Number|select",
+              "selectValue": "={{ $('예약번호 생성1').item.json.spaceType === 'Room' ? $('예약번호 생성1').item.json.roomNumber : 'General Table' }}"
+            },
+            {
+              "key": "Guests|number",
+              "numberValue": "={{Number($('예약번호 생성1').item.json.guests)}}"
+            },
+            {
+              "key": "Phone|phone_number",
+              "phoneValue": "={{$('예약번호 생성1').item.json.phone}}"
+            },
+            {
+              "key": "Email|email",
+              "emailValue": "={{$('예약번호 생성1').item.json.email}}"
+            },
+            {
+              "key": "Language|select",
+              "selectValue": "={{$('예약번호 생성1').item.json.language === 'ko' ? 'Korean' : $('예약번호 생성1').item.json.language === 'th' ? 'Thai' : 'English'}}"
+            },
+            {
+              "key": "Status|select",
+              "selectValue": "=Pending"
+            },
+            {
+              "key": "Reminder Sent|checkbox"
+            },
+            {
+              "key": "Name|rich_text",
+              "textContent": "={{$('예약번호 생성1').item.json.name}}"
+            },
+            {
+              "key": "Special Request|rich_text",
+              "textContent": "={{$('예약번호 생성1').item.json.specialRequest}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "b66b494e-e731-4ce4-b4b6-10f0fbcfd20e",
+      "name": "Notion에 저장1",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        208,
+        112
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "AU29qZb94H2pm2jL",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// 관리자 이메일 템플릿 (태국어 고정, 안전 처리)\nconst data = items[0].json;\n\nconst branchInfo = {\n  'Ekamai': {\n    name: 'สาขาเอกมัย',\n    phone: '095-868-6826',\n    address: 'BTS เอกมัย ทางออก 4 ตรงข้ามโรงพยาบาลสุขุมวิท'\n  },\n  'Phrom Phong': {\n    name: 'สาขาพร้อมพงษ์', \n    phone: '02-115-5500',\n    address: 'สุขุมวิท ซอย 24 ชั้น 1 โรงแรมอริสตัน'\n  }\n};\n\n// 디버깅 정보\nconsole.log('=== Branch Debug ===');\nconsole.log('data.property_branch:', JSON.stringify(data.property_branch));\nconsole.log('branchInfo keys:', Object.keys(branchInfo));\n\n// 안전한 지점 정보 가져오기 (올바른 속성명 사용)\nlet branch = branchInfo[data.property_branch];\nconsole.log('branch result:', branch);\n\nif (!branch) {\n  console.error('Branch not found! Available branches:', Object.keys(branchInfo));\n  console.error('Received branch:', data.property_branch);\n  \n  // 기본값 설정 (오류 방지)\n  branch = {\n    name: data.property_branch + ' (정보 없음)',\n    phone: '연락처 정보 없음',\n    address: '주소 정보 없음'\n  };\n}\n\n// 날짜 포맷팅 (올바른 속성명 사용)\nconst dateFormatted = new Date(data.property_reservation_date_time.start).toLocaleString('th-TH', {\n  timeZone: 'Asia/Bangkok',\n  year: 'numeric',\n  month: '2-digit', \n  day: '2-digit',\n  hour: '2-digit',\n  minute: '2-digit'\n});\n\n// 공간 정보 (안전 처리)\nconst spaceInfo = data.property_space_type === 'Room' ? \n  `ห้อง - ${data.property_room_number || 'ไม่ระบุ'}` : \n  `โซนโต๊ะ`;\n\n// 언어 표시\nconst languageDisplay = {\n  'ko': 'เกาหลี',\n  'th': 'ไทย', \n  'en': 'อังกฤษ'\n}[data.property_language] || data.property_language;\n\n// n8n Webhook URLs (URL 파라미터 방식으로 수정)\n   const confirmUrl = `https://dylan-automation.app.n8n.cloud/webhook/bookmakgol-admin?action=confirm&id=${data.property_booking_number}`;\n   const cancelUrl = `https://dylan-automation.app.n8n.cloud/webhook/bookmakgol-admin?action=cancel&id=${data.property_booking_number}`;\n\nconst emailBody = `\n<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>การจองใหม่เข้ามา</title>\n    <style>\n        * {\n            margin: 0;\n            padding: 0;\n            box-sizing: border-box;\n        }\n\n        body { \n            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n            color: #2d2d2d; \n            line-height: 1.6; \n            margin: 0; \n            padding: 20px;\n            min-height: 100vh;\n        }\n        \n        .container { \n            max-width: 600px; \n            margin: 0 auto; \n            padding: 20px;\n        }\n        \n        .header { \n            text-align: center; \n            margin-bottom: 30px;\n            padding: 30px 20px;\n            background: rgba(255, 255, 255, 0.25);\n            border-radius: 20px;\n            backdrop-filter: blur(10px);\n            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);\n            border: 1px solid rgba(255, 255, 255, 0.18);\n        }\n\n        .header h1 {\n            font-size: 2.5rem;\n            font-weight: 700;\n            color: #2d2d2d;\n            margin-bottom: 10px;\n            letter-spacing: 0.5px;\n        }\n\n        .alert-badge {\n            background: linear-gradient(135deg, #ff6b6b, #ee5a52);\n            color: white;\n            padding: 8px 16px;\n            border-radius: 20px;\n            font-size: 0.9rem;\n            font-weight: 600;\n            display: inline-block;\n            margin-top: 10px;\n            box-shadow: 0 4px 15px rgba(238, 90, 82, 0.4);\n        }\n        \n        .info-box { \n            background: rgba(255, 255, 255, 0.25);\n            padding: 30px; \n            border-radius: 20px; \n            margin: 20px 0; \n            backdrop-filter: blur(10px);\n            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);\n            border: 1px solid rgba(255, 255, 255, 0.18);\n        }\n        \n        .customer-box { \n            background: rgba(255, 255, 255, 0.25);\n            padding: 30px; \n            border-radius: 20px; \n            margin: 20px 0; \n            backdrop-filter: blur(10px);\n            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);\n            border: 1px solid rgba(255, 255, 255, 0.18);\n        }\n        \n        .button-section { \n            text-align: center; \n            margin: 30px 0; \n            padding: 25px; \n            background: rgba(255, 255, 255, 0.2);\n            border-radius: 15px; \n            backdrop-filter: blur(10px);\n            border: 1px solid rgba(255, 255, 255, 0.18);\n        }\n        \n        .btn { \n            display: inline-block; \n            padding: 15px 30px; \n            margin: 0 10px; \n            text-decoration: none; \n            border-radius: 15px; \n            font-weight: 600; \n            font-size: 1rem; \n            color: white !important;\n            transition: all 0.3s ease;\n            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);\n            border: none;\n            cursor: pointer;\n        }\n        \n        .btn-confirm { \n            background: linear-gradient(135deg, #51cf66, #40c057);\n        }\n        \n        .btn-confirm:hover { \n            background: linear-gradient(135deg, #40c057, #37b24d);\n            transform: translateY(-2px);\n            box-shadow: 0 6px 20px rgba(64, 192, 87, 0.4);\n        }\n        \n        .btn-cancel { \n            background: linear-gradient(135deg, #ff6b6b, #ee5a52);\n        }\n        \n        .btn-cancel:hover { \n            background: linear-gradient(135deg, #ee5a52, #e03131);\n            transform: translateY(-2px);\n            box-shadow: 0 6px 20px rgba(238, 90, 82, 0.4);\n        }\n        \n        .footer { \n            color: #4a4a4a; \n            font-size: 0.9rem; \n            text-align: center; \n            margin-top: 30px; \n            padding: 20px;\n            background: rgba(255, 255, 255, 0.15);\n            border-radius: 10px;\n            backdrop-filter: blur(5px);\n            border: 1px solid rgba(255, 255, 255, 0.1);\n        }\n        \n        h2 { \n            color: #2d2d2d; \n            border-bottom: 2px solid rgba(255, 255, 255, 0.3); \n            padding-bottom: 10px;\n            margin-bottom: 20px;\n            font-size: 1.2rem;\n            font-weight: 600;\n        }\n        \n        h3 { \n            color: #2d2d2d; \n            margin-bottom: 15px;\n            font-size: 1.1rem;\n            font-weight: 600;\n        }\n        \n        strong { \n            color: #2d2d2d;\n            font-weight: 600;\n        }\n\n        p {\n            margin: 10px 0;\n            color: #3a3a3a;\n        }\n\n        @media (max-width: 768px) {\n            .container {\n                padding: 10px;\n            }\n\n            .header h1 {\n                font-size: 2rem;\n            }\n\n            .info-box, .customer-box {\n                padding: 20px;\n            }\n\n            .btn {\n                display: block;\n                margin: 10px 0;\n                width: 100%;\n            }\n        }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>🍽️ มีการจองใหม่เข้ามา</h1>\n            <div class=\"alert-badge\">⚡ ต้องการการอนุมัติ</div>\n        </div>\n\n        <div class=\"info-box\">\n            <h2>📋 ข้อมูลการจอง</h2>\n            <p><strong>หมายเลขการจอง:</strong> ${data.property_booking_number}</p>\n            <p><strong>สาขา:</strong> ${branch.name}</p>\n            <p><strong>วันที่/เวลา:</strong> ${dateFormatted}</p>\n            <p><strong>พื้นที่:</strong> ${spaceInfo}</p>\n            <p><strong>จำนวนคน:</strong> ${data.property_guests} ท่าน</p>\n        </div>\n\n        <div class=\"customer-box\">\n            <h2>👤 ข้อมูลลูกค้า</h2>\n            <p><strong>ชื่อ:</strong> ${data.property_name}</p>\n            <p><strong>โทรศัพท์:</strong> ${data.property_phone}</p>\n            <p><strong>อีเมล:</strong> ${data.property_email}</p>\n            <p><strong>ภาษา:</strong> ${languageDisplay}</p>\n            <p><strong>ความต้องการพิเศษ:</strong> ${data.property_special_request || 'ไม่มี'}</p>\n        </div>\n\n        <div class=\"button-section\">\n            <h2>⚡ ดำเนินการคลิกเดียว</h2>\n            <p style=\"margin-bottom: 25px; color: #4a4a4a; font-weight: 600;\">คลิกปุ่มด้านล่างเพื่อดำเนินการทันที!</p>\n            \n            <a href=\"${confirmUrl}\" class=\"btn btn-confirm\">✅ ยืนยันการจอง</a>\n            <a href=\"${cancelUrl}\" class=\"btn btn-cancel\">❌ ยกเลิกการจอง</a>\n        </div>\n\n        <div class=\"footer\">\n            <p>ระบบจัดการการจอง Bookmakgol</p>\n            <p>หากมีปัญหา กรุณาติดต่อนักพัฒนา</p>\n        </div>\n    </div>\n</body>\n</html>\n`;\n\nreturn [{\n  json: {\n    ...data,\n    adminEmailSubject: `[Bookmakgol] การจองใหม่ - ${branch.name} - ${dateFormatted}`,\n    adminEmailBody: emailBody,\n    confirmUrl: confirmUrl,\n    cancelUrl: cancelUrl\n  }\n}];"
+      },
+      "id": "b25b4d89-e8d0-489e-8144-6aa1c8bca555",
+      "name": "관리자 이메일 생성1",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        416,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "subject": "={{$json.adminEmailSubject}}",
+        "includeHtml": true,
+        "htmlMessage": "={{$json.adminEmailBody}}",
+        "message": "=",
+        "toList": [
+          "dylan@57tb.art"
+        ],
+        "additionalFields": {}
+      },
+      "id": "fe422383-cf58-4163-bf3c-1a6ece970f03",
+      "name": "관리자 이메일 발송2",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [
+        608,
+        112
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "unDkKIDCn6d2hi5Z",
+          "name": "Bookmagol Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ {\n  \"status\": \"success\",\n  \"bookingNumber\": $node['예약번호 생성1'].json.bookingNumber,\n  \"customerName\": $node['예약번호 생성1'].json.name,\n  \"branch\": $node['예약번호 생성1'].json.branch,\n  \"branchPhone\": $node['예약번호 생성1'].json.branch === 'Ekamai' ? '095-868-6826' : '02-115-5500',\n  \"date\": $node['예약번호 생성1'].json.date,\n  \"time\": $node['예약번호 생성1'].json.time,\n  \"spaceType\": $node['예약번호 생성1'].json.spaceType,\n  \"spaceDetail\": $node['예약번호 생성1'].json.roomNumber || $node['예약번호 생성1'].json.floor || 'General Table',\n  \"guests\": $node['예약번호 생성1'].json.guests,\n  \"language\": $node['예약번호 생성1'].json.language,\n  \"message\": \"예약이 성공적으로 접수되었습니다.\"\n} }}",
+        "options": {}
+      },
+      "id": "9d3d050e-248f-42b2-b7b3-c3d4882fd56b",
+      "name": "성공 응답2",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        816,
+        112
       ]
     }
   ],
@@ -1019,65 +1203,7 @@
       "main": [
         [
           {
-            "node": "검증 오류 체크",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "검증 오류 체크": {
-      "main": [
-        [
-          {
-            "node": "오류 응답",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "중복 예약 체크",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "중복 예약 체크": {
-      "main": [
-        [
-          {
-            "node": "중복 검사 로직",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "중복 검사 로직": {
-      "main": [
-        [
-          {
-            "node": "중복 예약 확인",
-            "type": "main",
-            "index": 0
-          }
-        ]
-      ]
-    },
-    "중복 예약 확인": {
-      "main": [
-        [
-          {
-            "node": "중복 오류 응답",
-            "type": "main",
-            "index": 0
-          }
-        ],
-        [
-          {
-            "node": "예약번호 생성",
+            "node": "예약 타입 분기",
             "type": "main",
             "index": 0
           }
@@ -1431,6 +1557,97 @@
           }
         ]
       ]
+    },
+    "Upload file": {
+      "main": [
+        [
+          {
+            "node": "예약번호 생성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Convert Base64 to Binary": {
+      "main": [
+        [
+          {
+            "node": "Upload file",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "예약 타입 분기": {
+      "main": [
+        [
+          {
+            "node": "오류 응답",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "예약번호 생성1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Convert Base64 to Binary",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "예약번호 생성1": {
+      "main": [
+        [
+          {
+            "node": "Notion에 저장1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion에 저장1": {
+      "main": [
+        [
+          {
+            "node": "관리자 이메일 생성1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "관리자 이메일 생성1": {
+      "main": [
+        [
+          {
+            "node": "관리자 이메일 발송2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "관리자 이메일 발송2": {
+      "main": [
+        [
+          {
+            "node": "성공 응답2",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
     }
   },
   "settings": {
@@ -1444,8 +1661,110 @@
   "meta": {
     "templateCredsSetupCompleted": true
   },
-  "pinData": {},
-  "versionId": "ab58e734-0658-4aa5-92b9-b65bf0eaf300",
+  "pinData": {
+    "Webhook - Check Availability": [
+      {
+        "json": {
+          "headers": {
+            "host": "dylan-automation.app.n8n.cloud",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Cursor/2.0.69 Chrome/138.0.7204.251 Electron/37.7.0 Safari/537.36",
+            "accept": "*/*",
+            "accept-encoding": "gzip, br",
+            "accept-language": "ko",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "171.96.138.109",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "TH",
+            "cf-ray": "99ce326d97dce072-NRT",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "if-none-match": "W/\"f2-zhCyjfd6A1OzPquzSA/W5kRYu3M\"",
+            "priority": "u=1, i",
+            "sec-ch-ua": "\"Not)A;Brand\";v=\"8\", \"Chromium\";v=\"138\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "171.96.138.109, 172.68.118.144",
+            "x-forwarded-host": "dylan-automation.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-5-6fbf5bdbfc-mn9tr",
+            "x-is-trusted": "yes",
+            "x-real-ip": "171.96.138.109"
+          },
+          "params": {},
+          "query": {
+            "date": "2025-11-27",
+            "branch": "Phrom Phong",
+            "room": "Room 1"
+          },
+          "webhookUrl": "https://dylan-automation.app.n8n.cloud/webhook/check-availability",
+          "executionMode": "production"
+        }
+      }
+    ],
+    "Webhook": [
+      {
+        "json": {
+          "headers": {
+            "host": "dylan-automation.app.n8n.cloud",
+            "user-agent": "Mozilla/5.0 (Windows NT 10.0; Win64; x64) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/142.0.0.0 Safari/537.36",
+            "content-length": "39304",
+            "accept": "*/*",
+            "accept-encoding": "gzip, br",
+            "accept-language": "ko-KR,ko;q=0.9,en;q=0.8,th;q=0.7",
+            "cdn-loop": "cloudflare; loops=1; subreqs=1",
+            "cf-connecting-ip": "171.96.138.109",
+            "cf-ew-via": "15",
+            "cf-ipcountry": "TH",
+            "cf-ray": "99cf12bf65fda62b-BKK",
+            "cf-visitor": "{\"scheme\":\"https\"}",
+            "cf-worker": "n8n.cloud",
+            "content-type": "application/json",
+            "origin": "null",
+            "priority": "u=1, i",
+            "sec-ch-ua": "\"Chromium\";v=\"142\", \"Google Chrome\";v=\"142\", \"Not_A Brand\";v=\"99\"",
+            "sec-ch-ua-mobile": "?0",
+            "sec-ch-ua-platform": "\"Windows\"",
+            "sec-fetch-dest": "empty",
+            "sec-fetch-mode": "cors",
+            "sec-fetch-site": "cross-site",
+            "x-forwarded-for": "171.96.138.109, 172.68.44.144",
+            "x-forwarded-host": "dylan-automation.app.n8n.cloud",
+            "x-forwarded-port": "443",
+            "x-forwarded-proto": "https",
+            "x-forwarded-server": "traefik-prod-users-gwc-5-6fbf5bdbfc-9t625",
+            "x-is-trusted": "yes",
+            "x-real-ip": "171.96.138.109"
+          },
+          "params": {},
+          "query": {},
+          "body": {
+            "branch": "Ekamai",
+            "date": "2025-11-28",
+            "time": "11:00",
+            "spaceType": "Room",
+            "spaceDetail": "Room 1",
+            "guests": "5",
+            "name": "Dylan",
+            "phone": "0999999999",
+            "email": "dylan@57tb.art",
+            "specialRequest": "",
+            "language": "ko",
+            "depositAmount": "800",
+            "receiptBase64": "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",
+            "receiptFileName": "스크린샷 2025-11-11 230601.png",
+            "receiptMimeType": "image/png"
+          },
+          "webhookUrl": "https://dylan-automation.app.n8n.cloud/webhook/bookmakgol-reservation",
+          "executionMode": "production"
+        }
+      }
+    ]
+  },
+  "versionId": "563728d7-c748-4f4d-b382-679c3f1df196",
   "triggerCount": 4,
   "shared": [
     {
