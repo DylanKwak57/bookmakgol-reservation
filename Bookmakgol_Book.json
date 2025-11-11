@@ -1,0 +1,1473 @@
+{
+  "updatedAt": "2025-11-11T05:56:32.000Z",
+  "createdAt": "2025-11-03T08:26:19.720Z",
+  "id": "dDiWSm8cQZaADkIs",
+  "name": "Bookmakgol_Book",
+  "active": true,
+  "isArchived": false,
+  "nodes": [
+    {
+      "parameters": {
+        "multipleMethods": true,
+        "path": "bookmakgol-reservation",
+        "responseMode": "responseNode",
+        "options": {
+          "allowedOrigins": "https://dylankwak57.github.io"
+        }
+      },
+      "id": "59ec3475-ab99-4710-bbdf-3d2ab3f3cfc0",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -608,
+        112
+      ],
+      "webhookId": "bookmakgol-reservation"
+    },
+    {
+      "parameters": {
+        "functionCode": "// 데이터 검증 및 변환\nconst data = items[0].json.body || items[0].json;\n\nconsole.log('Received data:', data);\n\n// 필수 항목 체크 (실제 받은 필드명 기준)\nconst requiredFields = ['branch', 'date', 'time', 'spaceType', 'guests', 'name', 'phone', 'email', 'language'];\nconst missingFields = [];\n\nfor (const field of requiredFields) {\n  if (!data[field] || data[field].toString().trim() === '') {\n    missingFields.push(field);\n  }\n}\n\nconsole.log('Missing fields:', missingFields);\n\nif (missingFields.length > 0) {\n  return [{\n    json: {\n      error: true,\n      message: `Missing required fields: ${missingFields.join(', ')}`,\n      receivedData: data\n    }\n  }];\n}\n\n// 이메일 형식 검증\nconst emailRegex = /^[^\\s@]+@[^\\s@]+\\.[^\\s@]+$/;\nif (!emailRegex.test(data.email)) {\n  return [{\n    json: {\n      error: true,\n      message: 'Invalid email format'\n    }\n  }];\n}\n\n// 날짜/시간 형식 변환\nconst dateTime = `${data.date}T${data.time}:00.000+07:00`; // Bangkok timezone\n\n// 예약번호 생성용 날짜 (YYYYMMDD)\nconst bookingDate = data.date.replace(/-/g, '');\n\n// 공간 정보 설정\nlet roomNumber = null;\nlet floor = null;\n\nif (data.spaceType === 'Room') {\n  roomNumber = data.spaceDetail;\n} else {\n  floor = data.spaceDetail;\n}\n\nreturn [{\n  json: {\n    ...data,\n    dateTime: dateTime,\n    bookingDate: bookingDate,\n    roomNumber: roomNumber,\n    floor: floor,\n    status: 'Pending',\n    reminderSent: false,\n    error: false\n  }\n}];"
+      },
+      "id": "4db679c1-3544-4174-827d-9115a440b9d3",
+      "name": "데이터 검증",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.error}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "a1295719-22ce-4283-980c-8f077287978d",
+      "name": "검증 오류 체크",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -192,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"error\",\n  \"message\": \"{{$json.message}}\"\n}",
+        "options": {}
+      },
+      "id": "a89ef268-ae39-4752-90f5-2c24962f8600",
+      "name": "오류 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        0
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "284a2fb1-c15d-81a1-9d93-d4f47300f2e3",
+          "mode": "list",
+          "cachedResultName": "Bookmakgol Reservation Management",
+          "cachedResultUrl": "https://www.notion.so/284a2fb1c15d81a19d93d4f47300f2e3"
+        },
+        "limit": 100,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Reservation DateTime|date",
+              "condition": "equals",
+              "date": "={{$json.dateTime}}"
+            },
+            {
+              "key": "Branch|select",
+              "condition": "equals",
+              "selectValue": "={{$json.branch}}"
+            },
+            {
+              "key": "Space Type|select",
+              "condition": "equals",
+              "selectValue": "={{$json.spaceType}}"
+            },
+            {
+              "key": "Status|select",
+              "condition": "does_not_equal",
+              "selectValue": "=Cancelled"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "fec3503e-b957-4d10-89d9-ff46db2491f5",
+      "name": "중복 예약 체크",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        0,
+        208
+      ],
+      "alwaysOutputData": true,
+      "credentials": {
+        "notionApi": {
+          "id": "AU29qZb94H2pm2jL",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// 원본 데이터는 workflow의 다른 노드에서 가져오기\nconst inputData = $('검증 오류 체크').item.json;\nconst existingReservations = items.map(item => item.json);\n\nconsole.log('=== INPUT DATA (from 검증 오류 체크) ===');\nconsole.log(JSON.stringify(inputData, null, 2));\n\nconsole.log('=== EXISTING RESERVATIONS (from Notion) ===');\nconsole.log(JSON.stringify(existingReservations, null, 2));\n\nif (inputData.spaceType !== 'Room') {\n  return [{\n    json: {\n      ...inputData,\n      duplicateFound: false\n    }\n  }];\n}\n\n// 룸 예약 중복 체크\nconst duplicates = existingReservations.filter(reservation => {\n  return reservation.properties?.['Room Number']?.select?.name === inputData.roomNumber;\n});\n\nif (duplicates.length > 0) {\n  return [{\n    json: {\n      ...inputData,\n      duplicateFound: true,\n      duplicateMessage: `${inputData.branch} ${inputData.roomNumber}은(는) ${inputData.date} ${inputData.time}에 이미 예약되어 있습니다.`\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    ...inputData,\n    duplicateFound: false\n  }\n}];"
+      },
+      "id": "c04a2313-0de1-4f44-a66d-f9d27f5e4498",
+      "name": "중복 검사 로직",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        208,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.duplicateFound}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "cdb95e40-2d23-4c3e-850a-a70c0ecf54b5",
+      "name": "중복 예약 확인",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        400,
+        208
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"error\",\n  \"message\": \"{{$json.duplicateMessage}}\"\n}",
+        "options": {}
+      },
+      "id": "fc7bf055-bc60-4062-804f-fd7d323bf852",
+      "name": "중복 오류 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        608,
+        112
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// 예약번호 생성 (안전한 버전)\nconst data = items[0].json;\n\n// 안전한 날짜 처리\nlet dateForBooking = '';\nif (data.date) {\n  dateForBooking = data.date.replace(/-/g, '');\n} else if (data.bookingDate) {\n  dateForBooking = data.bookingDate;\n} else {\n  // 기본값 사용\n  const today = new Date();\n  dateForBooking = today.getFullYear() + \n    String(today.getMonth() + 1).padStart(2, '0') + \n    String(today.getDate()).padStart(2, '0');\n}\n\n// 시퀀스 번호 생성\nconst sequence = String(Date.now()).slice(-3);\n\n// 예약번호 생성\nconst bookingNumber = `BOOK-${dateForBooking}-${sequence}`;\n\nconsole.log('Generated booking number:', bookingNumber);\n\nreturn [{\n  json: {\n    ...data,\n    bookingNumber: bookingNumber\n  }\n}];"
+      },
+      "id": "270a54dd-ba8c-4960-90e4-8c8b505ce5bb",
+      "name": "예약번호 생성",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        608,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "databaseId": {
+          "__rl": true,
+          "value": "284a2fb1-c15d-81a1-9d93-d4f47300f2e3",
+          "mode": "list",
+          "cachedResultName": "Bookmakgol Reservation Management",
+          "cachedResultUrl": "https://www.notion.so/284a2fb1c15d81a19d93d4f47300f2e3"
+        },
+        "title": "={{$json.bookingNumber}}",
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Reservation DateTime|date",
+              "date": "={{$json.dateTime}}",
+              "timezone": "Asia/Bangkok"
+            },
+            {
+              "key": "Branch|select",
+              "selectValue": "={{$json.branch}}"
+            },
+            {
+              "key": "Space Type|select",
+              "selectValue": "={{$json.spaceType}}"
+            },
+            {
+              "key": "Room Number|select",
+              "selectValue": "={{$json.roomNumber}}"
+            },
+            {
+              "key": "Guests|number",
+              "numberValue": "={{$json.guests}}"
+            },
+            {
+              "key": "Phone|phone_number",
+              "phoneValue": "={{$json.phone}}"
+            },
+            {
+              "key": "Email|email",
+              "emailValue": "={{$json.email}}"
+            },
+            {
+              "key": "Language|select",
+              "selectValue": "={{$json.language === 'ko' ? 'Korean' : $json.language === 'th' ? 'Thai' : 'English'}}"
+            },
+            {
+              "key": "Status|select",
+              "selectValue": "=Pending"
+            },
+            {
+              "key": "Reminder Sent|checkbox"
+            },
+            {
+              "key": "Name|rich_text",
+              "textContent": "={{$json.name}}"
+            },
+            {
+              "key": "Special Request|rich_text",
+              "textContent": "={{$json.specialRequest}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "98c6b6dd-f139-4bb4-8e6f-7dd8e38e0dc3",
+      "name": "Notion에 저장",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        800,
+        304
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "AU29qZb94H2pm2jL",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// 관리자 이메일 템플릿 (태국어 고정, 안전 처리)\nconst data = items[0].json;\n\nconst branchInfo = {\n  'Ekamai': {\n    name: 'สาขาเอกมัย',\n    phone: '095-868-6826',\n    address: 'BTS เอกมัย ทางออก 4 ตรงข้ามโรงพยาบาลสุขุมวิท'\n  },\n  'Phrom Phong': {\n    name: 'สาขาพร้อมพงษ์', \n    phone: '02-115-5500',\n    address: 'สุขุมวิท ซอย 24 ชั้น 1 โรงแรมอริสตัน'\n  }\n};\n\n// 디버깅 정보\nconsole.log('=== Branch Debug ===');\nconsole.log('data.property_branch:', JSON.stringify(data.property_branch));\nconsole.log('branchInfo keys:', Object.keys(branchInfo));\n\n// 안전한 지점 정보 가져오기 (올바른 속성명 사용)\nlet branch = branchInfo[data.property_branch];\nconsole.log('branch result:', branch);\n\nif (!branch) {\n  console.error('Branch not found! Available branches:', Object.keys(branchInfo));\n  console.error('Received branch:', data.property_branch);\n  \n  // 기본값 설정 (오류 방지)\n  branch = {\n    name: data.property_branch + ' (정보 없음)',\n    phone: '연락처 정보 없음',\n    address: '주소 정보 없음'\n  };\n}\n\n// 날짜 포맷팅 (올바른 속성명 사용)\nconst dateFormatted = new Date(data.property_reservation_date_time.start).toLocaleString('th-TH', {\n  timeZone: 'Asia/Bangkok',\n  year: 'numeric',\n  month: '2-digit', \n  day: '2-digit',\n  hour: '2-digit',\n  minute: '2-digit'\n});\n\n// 공간 정보 (안전 처리)\nconst spaceInfo = data.property_space_type === 'Room' ? \n  `ห้อง - ${data.property_room_number || 'ไม่ระบุ'}` : \n  `โซนโต๊ะ`;\n\n// 언어 표시\nconst languageDisplay = {\n  'ko': 'เกาหลี',\n  'th': 'ไทย', \n  'en': 'อังกฤษ'\n}[data.property_language] || data.property_language;\n\n// n8n Webhook URLs (URL 파라미터 방식으로 수정)\n   const confirmUrl = `https://dylan-automation.app.n8n.cloud/webhook/bookmakgol-admin?action=confirm&id=${data.property_booking_number}`;\n   const cancelUrl = `https://dylan-automation.app.n8n.cloud/webhook/bookmakgol-admin?action=cancel&id=${data.property_booking_number}`;\n\nconst emailBody = `\n<!DOCTYPE html>\n<html>\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>การจองใหม่เข้ามา</title>\n    <style>\n        * {\n            margin: 0;\n            padding: 0;\n            box-sizing: border-box;\n        }\n\n        body { \n            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);\n            color: #2d2d2d; \n            line-height: 1.6; \n            margin: 0; \n            padding: 20px;\n            min-height: 100vh;\n        }\n        \n        .container { \n            max-width: 600px; \n            margin: 0 auto; \n            padding: 20px;\n        }\n        \n        .header { \n            text-align: center; \n            margin-bottom: 30px;\n            padding: 30px 20px;\n            background: rgba(255, 255, 255, 0.25);\n            border-radius: 20px;\n            backdrop-filter: blur(10px);\n            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);\n            border: 1px solid rgba(255, 255, 255, 0.18);\n        }\n\n        .header h1 {\n            font-size: 2.5rem;\n            font-weight: 700;\n            color: #2d2d2d;\n            margin-bottom: 10px;\n            letter-spacing: 0.5px;\n        }\n\n        .alert-badge {\n            background: linear-gradient(135deg, #ff6b6b, #ee5a52);\n            color: white;\n            padding: 8px 16px;\n            border-radius: 20px;\n            font-size: 0.9rem;\n            font-weight: 600;\n            display: inline-block;\n            margin-top: 10px;\n            box-shadow: 0 4px 15px rgba(238, 90, 82, 0.4);\n        }\n        \n        .info-box { \n            background: rgba(255, 255, 255, 0.25);\n            padding: 30px; \n            border-radius: 20px; \n            margin: 20px 0; \n            backdrop-filter: blur(10px);\n            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);\n            border: 1px solid rgba(255, 255, 255, 0.18);\n        }\n        \n        .customer-box { \n            background: rgba(255, 255, 255, 0.25);\n            padding: 30px; \n            border-radius: 20px; \n            margin: 20px 0; \n            backdrop-filter: blur(10px);\n            box-shadow: 0 8px 32px rgba(31, 38, 135, 0.37);\n            border: 1px solid rgba(255, 255, 255, 0.18);\n        }\n        \n        .button-section { \n            text-align: center; \n            margin: 30px 0; \n            padding: 25px; \n            background: rgba(255, 255, 255, 0.2);\n            border-radius: 15px; \n            backdrop-filter: blur(10px);\n            border: 1px solid rgba(255, 255, 255, 0.18);\n        }\n        \n        .btn { \n            display: inline-block; \n            padding: 15px 30px; \n            margin: 0 10px; \n            text-decoration: none; \n            border-radius: 15px; \n            font-weight: 600; \n            font-size: 1rem; \n            color: white !important;\n            transition: all 0.3s ease;\n            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);\n            border: none;\n            cursor: pointer;\n        }\n        \n        .btn-confirm { \n            background: linear-gradient(135deg, #51cf66, #40c057);\n        }\n        \n        .btn-confirm:hover { \n            background: linear-gradient(135deg, #40c057, #37b24d);\n            transform: translateY(-2px);\n            box-shadow: 0 6px 20px rgba(64, 192, 87, 0.4);\n        }\n        \n        .btn-cancel { \n            background: linear-gradient(135deg, #ff6b6b, #ee5a52);\n        }\n        \n        .btn-cancel:hover { \n            background: linear-gradient(135deg, #ee5a52, #e03131);\n            transform: translateY(-2px);\n            box-shadow: 0 6px 20px rgba(238, 90, 82, 0.4);\n        }\n        \n        .footer { \n            color: #4a4a4a; \n            font-size: 0.9rem; \n            text-align: center; \n            margin-top: 30px; \n            padding: 20px;\n            background: rgba(255, 255, 255, 0.15);\n            border-radius: 10px;\n            backdrop-filter: blur(5px);\n            border: 1px solid rgba(255, 255, 255, 0.1);\n        }\n        \n        h2 { \n            color: #2d2d2d; \n            border-bottom: 2px solid rgba(255, 255, 255, 0.3); \n            padding-bottom: 10px;\n            margin-bottom: 20px;\n            font-size: 1.2rem;\n            font-weight: 600;\n        }\n        \n        h3 { \n            color: #2d2d2d; \n            margin-bottom: 15px;\n            font-size: 1.1rem;\n            font-weight: 600;\n        }\n        \n        strong { \n            color: #2d2d2d;\n            font-weight: 600;\n        }\n\n        p {\n            margin: 10px 0;\n            color: #3a3a3a;\n        }\n\n        @media (max-width: 768px) {\n            .container {\n                padding: 10px;\n            }\n\n            .header h1 {\n                font-size: 2rem;\n            }\n\n            .info-box, .customer-box {\n                padding: 20px;\n            }\n\n            .btn {\n                display: block;\n                margin: 10px 0;\n                width: 100%;\n            }\n        }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"header\">\n            <h1>🍽️ มีการจองใหม่เข้ามา</h1>\n            <div class=\"alert-badge\">⚡ ต้องการการอนุมัติ</div>\n        </div>\n\n        <div class=\"info-box\">\n            <h2>📋 ข้อมูลการจอง</h2>\n            <p><strong>หมายเลขการจอง:</strong> ${data.property_booking_number}</p>\n            <p><strong>สาขา:</strong> ${branch.name}</p>\n            <p><strong>วันที่/เวลา:</strong> ${dateFormatted}</p>\n            <p><strong>พื้นที่:</strong> ${spaceInfo}</p>\n            <p><strong>จำนวนคน:</strong> ${data.property_guests} ท่าน</p>\n        </div>\n\n        <div class=\"customer-box\">\n            <h2>👤 ข้อมูลลูกค้า</h2>\n            <p><strong>ชื่อ:</strong> ${data.property_name}</p>\n            <p><strong>โทรศัพท์:</strong> ${data.property_phone}</p>\n            <p><strong>อีเมล:</strong> ${data.property_email}</p>\n            <p><strong>ภาษา:</strong> ${languageDisplay}</p>\n            <p><strong>ความต้องการพิเศษ:</strong> ${data.property_special_request || 'ไม่มี'}</p>\n        </div>\n\n        <div class=\"button-section\">\n            <h2>⚡ ดำเนินการคลิกเดียว</h2>\n            <p style=\"margin-bottom: 25px; color: #4a4a4a; font-weight: 600;\">คลิกปุ่มด้านล่างเพื่อดำเนินการทันที!</p>\n            \n            <a href=\"${confirmUrl}\" class=\"btn btn-confirm\">✅ ยืนยันการจอง</a>\n            <a href=\"${cancelUrl}\" class=\"btn btn-cancel\">❌ ยกเลิกการจอง</a>\n        </div>\n\n        <div class=\"footer\">\n            <p>ระบบจัดการการจอง Bookmakgol</p>\n            <p>หากมีปัญหา กรุณาติดต่อนักพัฒนา</p>\n        </div>\n    </div>\n</body>\n</html>\n`;\n\nreturn [{\n  json: {\n    ...data,\n    adminEmailSubject: `[Bookmakgol] การจองใหม่ - ${branch.name} - ${dateFormatted}`,\n    adminEmailBody: emailBody,\n    confirmUrl: confirmUrl,\n    cancelUrl: cancelUrl\n  }\n}];"
+      },
+      "id": "56c04305-8d60-43b1-9935-9201b9c128da",
+      "name": "관리자 이메일 생성",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "subject": "={{$json.adminEmailSubject}}",
+        "includeHtml": true,
+        "htmlMessage": "={{$json.adminEmailBody}}",
+        "message": "=",
+        "toList": [
+          "dylan@57tb.art",
+          "kurumisakamoto678@gmail.com",
+          "rtnp1345@gmail.com",
+          "nollnann9@gmail.com",
+          "phannipha2609@gmail.com",
+          "alpinemember3105@gmail.com"
+        ],
+        "additionalFields": {}
+      },
+      "id": "8d8e00ee-5a26-4f89-bd92-73df950757b6",
+      "name": "관리자 이메일 발송",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [
+        1200,
+        304
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "unDkKIDCn6d2hi5Z",
+          "name": "Bookmagol Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"success\",\n  \"bookingNumber\": \"{{$node['예약번호 생성'].json['bookingNumber']}}\",\n  \"customerName\": \"{{$node['예약번호 생성'].json['name']}}\",\n  \"branch\": \"{{$node['예약번호 생성'].json['branch']}}\",\n  \"branchPhone\": \"{{$node['예약번호 생성'].json['branch'] === 'Ekamai' ? '095-868-6826' : '02-115-5500'}}\",\n  \"date\": \"{{$node['예약번호 생성'].json['date']}}\",\n  \"time\": \"{{$node['예약번호 생성'].json['time']}}\",\n  \"spaceType\": \"{{$node['예약번호 생성'].json['spaceType']}}\",\n  \"spaceDetail\": \"{{$node['예약번호 생성'].json['roomNumber'] || $node['예약번호 생성'].json['floor'] || 'General Table'}}\",\n  \"guests\": \"{{$node['예약번호 생성'].json['guests']}}\",\n  \"language\": \"{{$node['예약번호 생성'].json['language']}}\",\n  \"message\": \"예약이 성공적으로 접수되었습니다.\"\n}",
+        "options": {}
+      },
+      "id": "c8bd80f0-dcb1-40bf-b08c-34a755e89843",
+      "name": "성공 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1408,
+        304
+      ]
+    },
+    {
+      "parameters": {
+        "rule": {
+          "interval": [
+            {
+              "field": "cronExpression",
+              "expression": "0 9 * * *"
+            }
+          ]
+        }
+      },
+      "id": "2b422210-740d-4215-bf16-2a6908e3d8e5",
+      "name": "스케줄 트리거",
+      "type": "n8n-nodes-base.scheduleTrigger",
+      "typeVersion": 1.1,
+      "position": [
+        -608,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Calculate tomorrow's date\nconst today = new Date();\nconst tomorrow = new Date(today);\ntomorrow.setDate(tomorrow.getDate() + 1);\n\n// Convert to Bangkok timezone\nconst bangkokTime = new Intl.DateTimeFormat('en-CA', {\n  timeZone: 'Asia/Bangkok',\n  year: 'numeric',\n  month: '2-digit',\n  day: '2-digit'\n}).format(tomorrow);\n\nreturn [{\n  json: {\n    tomorrowDate: bangkokTime,\n    searchStartDate: `${bangkokTime}T00:00:00.000+07:00`,\n    searchEndDate: `${bangkokTime}T23:59:59.999+07:00`\n  }\n}];"
+      },
+      "id": "f1865259-6768-47cb-9959-5898b7f92d98",
+      "name": "내일 날짜 계산",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "284a2fb1-c15d-81a1-9d93-d4f47300f2e3",
+          "mode": "list",
+          "cachedResultName": "Bookmakgol Reservation Management",
+          "cachedResultUrl": "https://www.notion.so/284a2fb1c15d81a19d93d4f47300f2e3"
+        },
+        "returnAll": true,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Reservation DateTime|date",
+              "condition": "on_or_after",
+              "date": "={{$json.searchStartDate}}"
+            },
+            {
+              "key": "Reservation DateTime|date",
+              "condition": "on_or_before",
+              "date": "={{$json.searchEndDate}}"
+            },
+            {
+              "key": "Status|select",
+              "condition": "equals",
+              "selectValue": "=Confirmed"
+            },
+            {
+              "key": "Reminder Sent|checkbox",
+              "condition": "equals"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "c55704c7-7bd9-4d7b-92cf-d46e3d342e00",
+      "name": "내일 예약 조회",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        688
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "AU29qZb94H2pm2jL",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.length}}",
+              "operation": "larger"
+            }
+          ]
+        }
+      },
+      "id": "a584afe0-90ab-4970-a40f-f7733f92d816",
+      "name": "예약 존재 확인",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        0,
+        688
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// Prepare reminder data (data is already extracted from Notion)\nconst reservations = items.map(item => {\n  const data = item.json;\n  \n  // Data is already in property_* format\n  const bookingNumber = data.property_booking_num || data.property_booking_number;\n  const pageId = data.id;\n  const language = data.property_language;\n  const langCode = language === 'Korean' ? 'ko' : language === 'Thai' ? 'th' : 'en';\n  \n  // Parse date\n  const dateTime = new Date(data.property_reservation_date_time?.start || data.start);\n  \n  const dateFormatted = dateTime.toLocaleDateString(\n    langCode === 'ko' ? 'ko-KR' : langCode === 'th' ? 'th-TH' : 'en-US',\n    {\n      timeZone: 'Asia/Bangkok',\n      year: 'numeric',\n      month: 'long',\n      day: 'numeric',\n      weekday: 'long'\n    }\n  );\n  \n  const timeFormatted = dateTime.toLocaleTimeString('en-US', {\n    timeZone: 'Asia/Bangkok',\n    hour: '2-digit',\n    minute: '2-digit',\n    hour12: false\n  });\n  \n  // Branch information\n  const branchName = data.property_branch;\n  const branchInfo = {\n    'Ekamai': {\n      ko: { name: '에까마이 지점', address: 'BTS 에까마이역 4번 출구, 수쿰윗 병원 맞은편', phone: '095-868-6826' },\n      th: { name: 'สาขาเอกมัย', address: 'BTS เอกมัย ทางออก 4 ตรงข้ามโรงพยาบาลสุขุมวิท', phone: '095-868-6826' },\n      en: { name: 'Ekamai Branch', address: 'BTS Ekamai Exit 4, Opposite Sukhumvit Hospital', phone: '095-868-6826' }\n    },\n    'Phrom Phong': {\n      ko: { name: '프롬퐁 지점', address: '수쿰윗 소이 24, 아리스톤 호텔 1층', phone: '02-115-5500' },\n      th: { name: 'สาขาพร้อมพงษ์', address: 'สุขุมวิท ซอย 24 ชั้น 1 โรงแรมอริสตัน', phone: '02-115-5500' },\n      en: { name: 'Phrom Phong Branch', address: 'Sukhumvit Soi 24, Ariston Hotel 1st Floor', phone: '02-115-5500' }\n    }\n  };\n  \n  const branch = branchInfo[branchName]?.[langCode] || branchInfo['Ekamai'][langCode];\n  \n  // Space info\n  const spaceType = data.property_space_type;\n  const roomNumber = data.property_room_number;\n  const spaceInfo = spaceType === 'Room' ? `Room ${roomNumber}` : 'Table';\n  \n  // Google Maps\n  const googleMapsLink = branchName === 'Ekamai' \n    ? 'https://maps.app.goo.gl/xb1Q4SW4fYd56FoYA'\n    : 'https://maps.app.goo.gl/PXyJGvjZcZu68RUL9';\n  \n  return {\n    pageId,\n    bookingNumber,\n    name: data.property_name,\n    email: data.property_email,\n    language: langCode,\n    dateFormatted,\n    timeFormatted,\n    branch: branchName,\n    branchInfo: branch,\n    spaceInfo,\n    guests: data.property_guests || 0,\n    specialRequest: data.property_special_request || '',\n    googleMapsLink\n  };\n});\n\nreturn reservations.map(reservation => ({ json: reservation }));"
+      },
+      "id": "917dc768-088a-4bbb-b8eb-b15dd092d3ea",
+      "name": "리마인더 데이터 준비",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        192,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// 리마인더 이메일 템플릿 생성 (모든 아이템 처리)\nconst results = items.map(item => {\n  const data = item.json;\n\n  // 언어별 템플릿\n  const templates = {\n    ko: {\n      subject: `[Bookmakgol] 내일 예약 안내 - ${data.bookingNumber}`,\n      body: `\n<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <style>\n    * { margin: 0; padding: 0; box-sizing: border-box; }\n    body {\n      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n      background: linear-gradient(to bottom, #b0b0b0 0%, #9a9a9a 100%);\n      padding: 20px;\n      line-height: 1.6;\n    }\n    .container {\n      max-width: 600px;\n      margin: 0 auto;\n      background: rgba(255, 255, 255, 0.5);\n      border-radius: 20px;\n      padding: 30px;\n      backdrop-filter: blur(10px);\n      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);\n      border: 1px solid rgba(255, 255, 255, 0.3);\n    }\n    .header {\n      text-align: center;\n      margin-bottom: 30px;\n      padding: 20px;\n      background: rgba(255, 255, 255, 0.3);\n      border-radius: 15px;\n      backdrop-filter: blur(5px);\n    }\n    .logo {\n      font-size: 2rem;\n      font-weight: 700;\n      color: #2d2d2d;\n      margin-bottom: 10px;\n    }\n    .subtitle {\n      font-size: 1.1rem;\n      color: #4a4a4a;\n      font-weight: 600;\n    }\n    .section {\n      background: rgba(255, 255, 255, 0.4);\n      border-radius: 15px;\n      padding: 20px;\n      margin: 20px 0;\n      backdrop-filter: blur(5px);\n      border: 1px solid rgba(255, 255, 255, 0.3);\n    }\n    .section-title {\n      font-size: 1.2rem;\n      color: #2d2d2d;\n      margin-bottom: 15px;\n      padding-bottom: 8px;\n      border-bottom: 2px solid #c8c8c8;\n      display: flex;\n      align-items: center;\n      font-weight: 600;\n    }\n    .section-number {\n      color: #2d2d2d;\n      font-size: 1.2rem;\n      margin-right: 10px;\n    }\n    .info-row {\n      display: flex;\n      justify-content: space-between;\n      padding: 10px 0;\n      border-bottom: 1px solid rgba(200, 200, 200, 0.3);\n    }\n    .info-row:last-child { border-bottom: none; }\n    .info-label {\n      font-weight: 600;\n      color: #3a3a3a;\n    }\n    .info-value {\n      color: #2d2d2d;\n      text-align: right;\n    }\n    .map-btn {\n      display: inline-block;\n      width: 100%;\n      padding: 15px;\n      margin: 15px 0;\n      background: rgba(74, 74, 74, 0.9);\n      color: white;\n      text-decoration: none;\n      border-radius: 12px;\n      text-align: center;\n      font-weight: 600;\n      font-size: 1rem;\n      transition: all 0.3s ease;\n      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);\n    }\n    .map-btn:hover {\n      background: rgba(45, 45, 45, 1);\n      transform: translateY(-2px);\n      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);\n    }\n    .highlight-box {\n      background: rgba(74, 74, 74, 0.1);\n      border-left: 4px solid #4a4a4a;\n      padding: 15px;\n      margin: 15px 0;\n      border-radius: 8px;\n    }\n    .footer {\n      text-align: center;\n      margin-top: 30px;\n      padding-top: 20px;\n      border-top: 2px solid rgba(200, 200, 200, 0.5);\n      color: #666;\n      font-size: 0.9rem;\n    }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <div class=\"logo\">🍽️ 북막골</div>\n      <div class=\"subtitle\">내일 예약 안내</div>\n    </div>\n\n    <div class=\"section\">\n      <div class=\"section-title\">\n        <span class=\"section-number\">📋</span>\n        예약 정보\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">예약번호:</div>\n        <div class=\"info-value\">${data.bookingNumber}</div>\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">고객명:</div>\n        <div class=\"info-value\">${data.name}</div>\n      </div>\n    </div>\n\n    <div class=\"section\">\n      <div class=\"section-title\">\n        <span class=\"section-number\">📍</span>\n        방문 정보\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">지점:</div>\n        <div class=\"info-value\">${data.branchInfo.name}</div>\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">날짜:</div>\n        <div class=\"info-value\">${data.dateFormatted}</div>\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">시간:</div>\n        <div class=\"info-value\">${data.timeFormatted}</div>\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">공간:</div>\n        <div class=\"info-value\">${data.spaceInfo}</div>\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">인원:</div>\n        <div class=\"info-value\">${data.guests}명</div>\n      </div>\n    </div>\n\n    <div class=\"section\">\n      <div class=\"section-title\">\n        <span class=\"section-number\">🧭</span>\n        오시는 길\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">주소:</div>\n        <div class=\"info-value\">${data.branchInfo.address}</div>\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">전화:</div>\n        <div class=\"info-value\">${data.branchInfo.phone}</div>\n      </div>\n      <a href=\"${data.googleMapsLink}\" class=\"map-btn\">\n        📍 구글맵으로 길찾기\n      </a>\n    </div>\n\n    <div class=\"highlight-box\">\n      <strong>⏰ 예약 시간 10분 전까지 도착해주세요!</strong><br>\n      문의사항이 있으시면 위 전화번호로 연락주세요.\n    </div>\n\n    <div class=\"footer\">\n      북막골 예약 시스템<br>\n      태국 전통 한식당\n    </div>\n  </div>\n</body>\n</html>\n      `\n    },\n    th: {\n      subject: `[Bookmakgol] เตือนการจองพรุ่งนี้ - ${data.bookingNumber}`,\n      body: `\n<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <style>\n    * { margin: 0; padding: 0; box-sizing: border-box; }\n    body {\n      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n      background: linear-gradient(to bottom, #b0b0b0 0%, #9a9a9a 100%);\n      padding: 20px;\n      line-height: 1.6;\n    }\n    .container {\n      max-width: 600px;\n      margin: 0 auto;\n      background: rgba(255, 255, 255, 0.5);\n      border-radius: 20px;\n      padding: 30px;\n      backdrop-filter: blur(10px);\n      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);\n      border: 1px solid rgba(255, 255, 255, 0.3);\n    }\n    .header {\n      text-align: center;\n      margin-bottom: 30px;\n      padding: 20px;\n      background: rgba(255, 255, 255, 0.3);\n      border-radius: 15px;\n      backdrop-filter: blur(5px);\n    }\n    .logo {\n      font-size: 2rem;\n      font-weight: 700;\n      color: #2d2d2d;\n      margin-bottom: 10px;\n    }\n    .subtitle {\n      font-size: 1.1rem;\n      color: #4a4a4a;\n      font-weight: 600;\n    }\n    .section {\n      background: rgba(255, 255, 255, 0.4);\n      border-radius: 15px;\n      padding: 20px;\n      margin: 20px 0;\n      backdrop-filter: blur(5px);\n      border: 1px solid rgba(255, 255, 255, 0.3);\n    }\n    .section-title {\n      font-size: 1.2rem;\n      color: #2d2d2d;\n      margin-bottom: 15px;\n      padding-bottom: 8px;\n      border-bottom: 2px solid #c8c8c8;\n      display: flex;\n      align-items: center;\n      font-weight: 600;\n    }\n    .section-number {\n      color: #2d2d2d;\n      font-size: 1.2rem;\n      margin-right: 10px;\n    }\n    .info-row {\n      display: flex;\n      justify-content: space-between;\n      padding: 10px 0;\n      border-bottom: 1px solid rgba(200, 200, 200, 0.3);\n    }\n    .info-row:last-child { border-bottom: none; }\n    .info-label {\n      font-weight: 600;\n      color: #3a3a3a;\n    }\n    .info-value {\n      color: #2d2d2d;\n      text-align: right;\n    }\n    .map-btn {\n      display: inline-block;\n      width: 100%;\n      padding: 15px;\n      margin: 15px 0;\n      background: rgba(74, 74, 74, 0.9);\n      color: white;\n      text-decoration: none;\n      border-radius: 12px;\n      text-align: center;\n      font-weight: 600;\n      font-size: 1rem;\n      transition: all 0.3s ease;\n      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);\n    }\n    .map-btn:hover {\n      background: rgba(45, 45, 45, 1);\n      transform: translateY(-2px);\n      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);\n    }\n    .highlight-box {\n      background: rgba(74, 74, 74, 0.1);\n      border-left: 4px solid #4a4a4a;\n      padding: 15px;\n      margin: 15px 0;\n      border-radius: 8px;\n    }\n    .footer {\n      text-align: center;\n      margin-top: 30px;\n      padding-top: 20px;\n      border-top: 2px solid rgba(200, 200, 200, 0.5);\n      color: #666;\n      font-size: 0.9rem;\n    }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <div class=\"logo\">🍽️ บุกมักกล</div>\n      <div class=\"subtitle\">เตือนการจองพรุ่งนี้</div>\n    </div>\n\n    <div class=\"section\">\n      <div class=\"section-title\">\n        <span class=\"section-number\">📋</span>\n        ข้อมูลการจอง\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">เลขที่การจอง:</div>\n        <div class=\"info-value\">${data.bookingNumber}</div>\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">ชื่อลูกค้า:</div>\n        <div class=\"info-value\">${data.name}</div>\n      </div>\n    </div>\n\n    <div class=\"section\">\n      <div class=\"section-title\">\n        <span class=\"section-number\">📍</span>\n        ข้อมูลการเข้าใช้บริการ\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">สาขา:</div>\n        <div class=\"info-value\">${data.branchInfo.name}</div>\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">วันที่:</div>\n        <div class=\"info-value\">${data.dateFormatted}</div>\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">เวลา:</div>\n        <div class=\"info-value\">${data.timeFormatted}</div>\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">พื้นที่:</div>\n        <div class=\"info-value\">${data.spaceInfo}</div>\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">จำนวนคน:</div>\n        <div class=\"info-value\">${data.guests} ท่าน</div>\n      </div>\n    </div>\n\n    <div class=\"section\">\n      <div class=\"section-title\">\n        <span class=\"section-number\">🧭</span>\n        ที่อยู่\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">ที่อยู่:</div>\n        <div class=\"info-value\">${data.branchInfo.address}</div>\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">โทรศัพท์:</div>\n        <div class=\"info-value\">${data.branchInfo.phone}</div>\n      </div>\n      <a href=\"${data.googleMapsLink}\" class=\"map-btn\">\n        📍 เปิด Google Maps\n      </a>\n    </div>\n\n    <div class=\"highlight-box\">\n      <strong>⏰ กรุณามาถึงก่อนเวลานัดหมาย 10 นาที!</strong><br>\n      หากมีข้อสงสัย กรุณาโทรติดต่อเบอร์ข้างบน\n    </div>\n\n    <div class=\"footer\">\n      ระบบจองโต๊ะ Bookmakgol<br>\n      ร้านอาหารเกาหลีดั้งเดิมในประเทศไทย\n    </div>\n  </div>\n</body>\n</html>\n      `\n    },\n    en: {\n      subject: `[Bookmakgol] Tomorrow's Reservation Reminder - ${data.bookingNumber}`,\n      body: `\n<!DOCTYPE html>\n<html>\n<head>\n  <meta charset=\"UTF-8\">\n  <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n  <style>\n    * { margin: 0; padding: 0; box-sizing: border-box; }\n    body {\n      font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n      background: linear-gradient(to bottom, #b0b0b0 0%, #9a9a9a 100%);\n      padding: 20px;\n      line-height: 1.6;\n    }\n    .container {\n      max-width: 600px;\n      margin: 0 auto;\n      background: rgba(255, 255, 255, 0.5);\n      border-radius: 20px;\n      padding: 30px;\n      backdrop-filter: blur(10px);\n      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);\n      border: 1px solid rgba(255, 255, 255, 0.3);\n    }\n    .header {\n      text-align: center;\n      margin-bottom: 30px;\n      padding: 20px;\n      background: rgba(255, 255, 255, 0.3);\n      border-radius: 15px;\n      backdrop-filter: blur(5px);\n    }\n    .logo {\n      font-size: 2rem;\n      font-weight: 700;\n      color: #2d2d2d;\n      margin-bottom: 10px;\n    }\n    .subtitle {\n      font-size: 1.1rem;\n      color: #4a4a4a;\n      font-weight: 600;\n    }\n    .section {\n      background: rgba(255, 255, 255, 0.4);\n      border-radius: 15px;\n      padding: 20px;\n      margin: 20px 0;\n      backdrop-filter: blur(5px);\n      border: 1px solid rgba(255, 255, 255, 0.3);\n    }\n    .section-title {\n      font-size: 1.2rem;\n      color: #2d2d2d;\n      margin-bottom: 15px;\n      padding-bottom: 8px;\n      border-bottom: 2px solid #c8c8c8;\n      display: flex;\n      align-items: center;\n      font-weight: 600;\n    }\n    .section-number {\n      color: #2d2d2d;\n      font-size: 1.2rem;\n      margin-right: 10px;\n    }\n    .info-row {\n      display: flex;\n      justify-content: space-between;\n      padding: 10px 0;\n      border-bottom: 1px solid rgba(200, 200, 200, 0.3);\n    }\n    .info-row:last-child { border-bottom: none; }\n    .info-label {\n      font-weight: 600;\n      color: #3a3a3a;\n    }\n    .info-value {\n      color: #2d2d2d;\n      text-align: right;\n    }\n    .map-btn {\n      display: inline-block;\n      width: 100%;\n      padding: 15px;\n      margin: 15px 0;\n      background: rgba(74, 74, 74, 0.9);\n      color: white;\n      text-decoration: none;\n      border-radius: 12px;\n      text-align: center;\n      font-weight: 600;\n      font-size: 1rem;\n      transition: all 0.3s ease;\n      box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);\n    }\n    .map-btn:hover {\n      background: rgba(45, 45, 45, 1);\n      transform: translateY(-2px);\n      box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);\n    }\n    .highlight-box {\n      background: rgba(74, 74, 74, 0.1);\n      border-left: 4px solid #4a4a4a;\n      padding: 15px;\n      margin: 15px 0;\n      border-radius: 8px;\n    }\n    .footer {\n      text-align: center;\n      margin-top: 30px;\n      padding-top: 20px;\n      border-top: 2px solid rgba(200, 200, 200, 0.5);\n      color: #666;\n      font-size: 0.9rem;\n    }\n  </style>\n</head>\n<body>\n  <div class=\"container\">\n    <div class=\"header\">\n      <div class=\"logo\">🍽️ Bookmakgol</div>\n      <div class=\"subtitle\">Tomorrow's Reservation Reminder</div>\n    </div>\n\n    <div class=\"section\">\n      <div class=\"section-title\">\n        <span class=\"section-number\">📋</span>\n        Reservation Details\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">Booking Number:</div>\n        <div class=\"info-value\">${data.bookingNumber}</div>\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">Customer Name:</div>\n        <div class=\"info-value\">${data.name}</div>\n      </div>\n    </div>\n\n    <div class=\"section\">\n      <div class=\"section-title\">\n        <span class=\"section-number\">📍</span>\n        Visit Information\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">Branch:</div>\n        <div class=\"info-value\">${data.branchInfo.name}</div>\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">Date:</div>\n        <div class=\"info-value\">${data.dateFormatted}</div>\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">Time:</div>\n        <div class=\"info-value\">${data.timeFormatted}</div>\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">Space:</div>\n        <div class=\"info-value\">${data.spaceInfo}</div>\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">Guests:</div>\n        <div class=\"info-value\">${data.guests}</div>\n      </div>\n    </div>\n\n    <div class=\"section\">\n      <div class=\"section-title\">\n        <span class=\"section-number\">🧭</span>\n        Directions\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">Address:</div>\n        <div class=\"info-value\">${data.branchInfo.address}</div>\n      </div>\n      <div class=\"info-row\">\n        <div class=\"info-label\">Phone:</div>\n        <div class=\"info-value\">${data.branchInfo.phone}</div>\n      </div>\n      <a href=\"${data.googleMapsLink}\" class=\"map-btn\">\n        📍 Open Google Maps\n      </a>\n    </div>\n\n    <div class=\"highlight-box\">\n      <strong>⏰ Please arrive 10 minutes before your reservation!</strong><br>\n      If you have any questions, please call the number above.\n    </div>\n\n    <div class=\"footer\">\n      Bookmakgol Reservation System<br>\n      Traditional Korean Restaurant in Thailand\n    </div>\n  </div>\n</body>\n</html>\n      `\n    }\n  };\n\n  const template = templates[data.language];\n\n  return {\n    json: {\n      ...data,\n      emailSubject: template.subject,\n      emailBody: template.body\n    }\n  };\n});\n\nreturn results;"
+      },
+      "id": "625ea4d9-63aa-474b-b48a-9e33162aefc3",
+      "name": "리마인더 템플릿 생성",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        400,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "subject": "={{$json.emailSubject}}",
+        "includeHtml": true,
+        "htmlMessage": "={{$json.emailBody}}",
+        "message": "=",
+        "toList": [
+          "={{$json.email}}"
+        ],
+        "additionalFields": {}
+      },
+      "id": "65f33762-79a7-4a51-898b-fd0ef4fb5cf4",
+      "name": "리마인더 이메일 발송",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [
+        592,
+        592
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "unDkKIDCn6d2hi5Z",
+          "name": "Bookmagol Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{ $('리마인더 템플릿 생성').item.json.pageId }}",
+          "mode": "id"
+        },
+        "simple": false,
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Reminder Sent|checkbox",
+              "checkboxValue": true
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "74eedb55-be7e-4c31-bc6c-03e36290df64",
+      "name": "리마인더 발송 표시",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        800,
+        592
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "AU29qZb94H2pm2jL",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// Processing completion log\nconst processedCount = items.length;\nconst currentTime = new Date().toLocaleString('en-US', {\n  timeZone: 'Asia/Bangkok'\n});\n\nconsole.log(`[${currentTime}] Reminder sending completed: ${processedCount} items`);\n\nreturn [{\n  json: {\n    processedCount,\n    processedAt: currentTime,\n    message: `Successfully sent ${processedCount} reminders.`\n  }\n}];"
+      },
+      "id": "605a514e-0f33-413c-90b5-27a81911782e",
+      "name": "처리 완료 로그",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        992,
+        592
+      ]
+    },
+    {
+      "parameters": {
+        "path": "bookmakgol-admin",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "74197144-8134-4374-a022-bbf8446dbe7b",
+      "name": "관리자 버튼 Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -608,
+        1072
+      ],
+      "webhookId": "bookmakgol-admin"
+    },
+    {
+      "parameters": {
+        "functionCode": "// ========== 중복 실행 방지 시작 ==========\n// URL 파라미터 먼저 파싱 (중복 체크용)\nconst webhookData = items[0].json;\nconst query = webhookData.query || {};\nconst action = query.action || 'cancel';\nconst bookingId = query.id;\n\n// 중복 실행 방지 로직\nconst now = Date.now();\nconst cacheKey = `processed_${bookingId}_${action}`;\n\nif (!global.processedBookings) {\n  global.processedBookings = {};\n}\n\n// 최근 1분 이내 같은 요청이 있었는지 체크\nif (global.processedBookings[cacheKey]) {\n  const lastProcessed = global.processedBookings[cacheKey];\n  if (now - lastProcessed < 60000) { // 1분 = 60,000ms\n    const waitSeconds = Math.ceil((60000 - (now - lastProcessed)) / 1000);\n    console.log(`⚠️ Duplicate request detected! Please wait ${waitSeconds} seconds.`);\n    return [{\n      json: {\n        error: true,\n        message: `This booking was just processed. Please wait ${waitSeconds} seconds before trying again.`\n      }\n    }];\n  }\n}\n\n// 처리 기록\nglobal.processedBookings[cacheKey] = now;\nconsole.log('✅ New request accepted:', cacheKey);\n// ========== 중복 실행 방지 끝 ==========\n\n// URL 파라미터 파싱 및 액션 결정\nconst bookingNumber = query.id;\n\nconsole.log('=== Debug Info ===');\nconsole.log('webhookData:', JSON.stringify(webhookData, null, 2));\nconsole.log('query:', JSON.stringify(query, null, 2));\nconsole.log('action:', action);\nconsole.log('bookingNumber:', bookingNumber);\n\nif (!bookingNumber) {\n  return [{\n    json: {\n      error: true,\n      message: 'Booking ID is required'\n    }\n  }];\n}\n\nreturn [{\n  json: {\n    action: action,\n    bookingNumber: bookingNumber,\n    error: false\n  }\n}];"
+      },
+      "id": "7b31bbe2-f160-48a9-851d-ad963718b8d7",
+      "name": "액션 파싱",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        1072
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "boolean": [
+            {
+              "value1": "={{$json.error}}",
+              "value2": true
+            }
+          ]
+        }
+      },
+      "id": "73923010-2f2f-40f8-92cb-8d0bd2afeb1f",
+      "name": "오류 체크",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        -208,
+        1072
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": "284a2fb1-c15d-81a1-9d93-d4f47300f2e3",
+        "limit": 1,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Booking Number|title",
+              "condition": "equals",
+              "titleValue": "={{$json.bookingNumber}}"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "7c737cb9-1613-4a67-9609-5b8ab5709dcc",
+      "name": "예약 조회",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        0,
+        1168
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "AU29qZb94H2pm2jL",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "html",
+        "options": {}
+      },
+      "id": "badc7eab-75dd-4818-a133-52e87990f58c",
+      "name": "예약 없음 응답",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        400,
+        1088
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$node['액션 파싱'].json.action}}",
+              "value2": "confirm"
+            }
+          ]
+        }
+      },
+      "id": "ffc77e7b-2824-462c-97b8-5977df10b48d",
+      "name": "액션 분기",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        400,
+        1280
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{$json.id}}",
+          "mode": "id"
+        },
+        "simple": false,
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|select",
+              "selectValue": "Confirmed"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "8a1c1c42-1de1-4d65-adba-f333471d6c25",
+      "name": "예약 확정 업데이트",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        736,
+        1168
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "AU29qZb94H2pm2jL",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "update",
+        "pageId": {
+          "__rl": true,
+          "value": "={{$json.id}}",
+          "mode": "id"
+        },
+        "simple": false,
+        "propertiesUi": {
+          "propertyValues": [
+            {
+              "key": "Status|select",
+              "selectValue": "Cancelled"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "5ab8ed6e-3997-465f-86c5-f168ed4377c6",
+      "name": "예약 취소 업데이트",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        720,
+        1392
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "AU29qZb94H2pm2jL",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// 고객 정보 추출 및 이메일 데이터 준비\nconst data = items[0].json;\nconst properties = data.properties;\n\n// 기본 정보 추출\nconst bookingNumber = properties['Booking Number'].title[0].plain_text;\n\n// 날짜 파싱 개선\nconst reservationDateTime = properties['Reservation DateTime'].date.start;\nconsole.log('Original date string:', reservationDateTime);\n\nlet dateTime;\ntry {\n  if (reservationDateTime.includes('T')) {\n    dateTime = new Date(reservationDateTime);\n  } else {\n    dateTime = new Date(reservationDateTime + 'T00:00:00');\n  }\n  \n  if (isNaN(dateTime.getTime())) {\n    dateTime = new Date();\n    dateTime.setDate(dateTime.getDate() + 1);\n    console.log('Using tomorrow as fallback');\n  }\n} catch (error) {\n  console.log('Date parsing error:', error);\n  dateTime = new Date();\n  dateTime.setDate(dateTime.getDate() + 1);\n}\n\nconsole.log('Final parsed dateTime:', dateTime);\n\nconst branchName = properties['Branch'].select.name;\nconst spaceType = properties['Space Type'].select.name;\nconst roomNumber = properties['Room Number']?.select?.name;\nconst floor = properties['Floor']?.select?.name;\nconst guests = properties['Guests'].number;\nconst name = properties['Name'].rich_text[0].plain_text;\nconst email = properties['Email'].email;\nconst language = properties['Language'].select.name;\nconst specialRequest = properties['Special Request']?.rich_text[0]?.plain_text || '';\n\n// 언어별 설정\nconst langCode = language === 'Korean' ? 'ko' : language === 'Thai' ? 'th' : 'en';\n\n// 날짜와 시간 포맷팅\nconst dateFormatted = {\n  ko: dateTime.toLocaleDateString('ko-KR', { \n    timeZone: 'Asia/Bangkok',\n    year: 'numeric', \n    month: 'long', \n    day: 'numeric',\n    weekday: 'long'\n  }),\n  th: dateTime.toLocaleDateString('th-TH', { \n    timeZone: 'Asia/Bangkok',\n    year: 'numeric', \n    month: 'long', \n    day: 'numeric'\n  }),\n  en: dateTime.toLocaleDateString('en-US', { \n    timeZone: 'Asia/Bangkok',\n    year: 'numeric', \n    month: 'long', \n    day: 'numeric',\n    weekday: 'long'\n  })\n};\n\nconst timeFormatted = {\n  ko: dateTime.toLocaleTimeString('ko-KR', { \n    timeZone: 'Asia/Bangkok',\n    hour: '2-digit', \n    minute: '2-digit',\n    hour12: false\n  }),\n  th: dateTime.toLocaleTimeString('th-TH', { \n    timeZone: 'Asia/Bangkok',\n    hour: '2-digit', \n    minute: '2-digit',\n    hour12: false\n  }),\n  en: dateTime.toLocaleTimeString('en-US', { \n    timeZone: 'Asia/Bangkok',\n    hour: '2-digit', \n    minute: '2-digit',\n    hour12: false\n  })\n};\n\n// 공간 정보\nlet spaceInfo;\nif (spaceType === 'Room') {\n  if (floor && floor !== 'undefined') {\n    spaceInfo = `${roomNumber} (${floor})`;\n  } else {\n    spaceInfo = roomNumber || 'Room';\n  }\n} else {\n  // 언어별 테이블 공간 정보\n  const tableSpaceMap = {\n    'ko': '일반 테이블',\n    'th': 'โซนโต๊ะ',\n    'en': 'General Table'\n  };\n  spaceInfo = tableSpaceMap[langCode] || 'โซนโต๊ะ';\n}\n\n// 언어별 지점 정보\nconst branchInfo = {\n  'Ekamai': { \n    ko: { \n      name: '에까마이 지점', \n      phone: '095-868-6826', \n      address: 'BTS 에까마이역 4번 출구, 수쿰윗 병원 맞은편'\n    },\n    th: { \n      name: 'สาขาเอกมัย', \n      phone: '095-868-6826', \n      address: 'BTS เอกมัย ทางออก 4 ตรงข้ามโรงพยาบาลสุขุมวิท'\n    },\n    en: { \n      name: 'Ekamai Branch', \n      phone: '095-868-6826', \n      address: 'BTS Ekamai Exit 4, Opposite Sukhumvit Hospital'\n    }\n  },\n  'Phrom Phong': { \n    ko: { \n      name: '프롬퐁 지점', \n      phone: '02-115-5500', \n      address: '수쿰윗 소이 24, 아리스톤 호텔 1층'\n    },\n    th: { \n      name: 'สาขาพร้อมพงษ์', \n      phone: '02-115-5500', \n      address: 'สุขุมวิท ซอย 24 ชั้น 1 โรงแรมอริสตัน'\n    },\n    en: { \n      name: 'Phrom Phong Branch', \n      phone: '02-115-5500', \n      address: 'Sukhumvit Soi 24, Ariston Hotel 1st Floor'\n    }\n  }\n};\n\nconst branch = branchInfo[branchName]?.[langCode] || { \n  name: branchName, \n  phone: '연락처 없음', \n  address: '주소 정보 없음' \n};\n\n// 🎯 실제 구글 맵스 링크 (수정됨!)\nconst googleMapsLink = branchName === 'Ekamai' \n  ? 'https://maps.app.goo.gl/xb1Q4SW4fYd56FoYA'  // 에까마이 지점\n  : 'https://maps.app.goo.gl/PXyJGvjZcZu68RUL9';  // 프롬퐁 지점\n\nreturn [{\n  json: {\n    bookingNumber: bookingNumber,\n    name: name,\n    email: email,\n    language: langCode,\n    branch: branchName,\n    branchAddress: branch.address,\n    branchPhone: branch.phone,\n    branchName: branch.name,\n    spaceType: spaceType,\n    roomNumber: roomNumber || '',\n    floor: floor || '',\n    guests: guests,\n    spaceInfo: spaceInfo,\n    \n    // 🚨 이렇게 수정! (언어에 맞는 문자열만 전달)\n    bookingDate: dateFormatted[langCode],  // 객체가 아닌 문자열!\n    bookingTime: timeFormatted[langCode],  // 객체가 아닌 문자열!\n    \n    googleMapsLink: googleMapsLink\n  }\n}];"
+      },
+      "id": "48db2be1-02ac-4469-9384-c68785bfc090",
+      "name": "이메일 데이터 준비",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1008,
+        1168
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "string": [
+            {
+              "value1": "={{$node['액션 파싱'].json.action}}",
+              "value2": "confirm"
+            }
+          ]
+        }
+      },
+      "id": "6d30b7c0-18af-4ae5-ba02-51a8c1c0aeb2",
+      "name": "이메일 분기",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        1216,
+        1168
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// 확정 이메일 템플릿 생성 (완전한 버전 + index.html 디자인)\nconst data = items[0].json;\n\nconst templates = {\n  ko: {\n    subject: `[북막골] 예약이 확정되었습니다 - ${data.bookingNumber}`,\n    body: `\n    <!DOCTYPE html>\n    <html lang=\"ko\">\n    <head>\n        <meta charset=\"UTF-8\">\n        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n        <title>예약 확정</title>\n        <style>\n            * {\n                margin: 0;\n                padding: 0;\n                box-sizing: border-box;\n            }\n\n            body {\n                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n                background: linear-gradient(to bottom, #b0b0b0 0%, #9a9a9a 100%);\n                color: #2d2d2d;\n                line-height: 1.6;\n                min-height: 100vh;\n                padding: 20px;\n            }\n\n            .container {\n                max-width: 600px;\n                margin: 0 auto;\n                padding: 20px;\n            }\n\n            .header {\n                text-align: center;\n                margin-bottom: 30px;\n                padding: 30px 20px;\n                background: rgba(255, 255, 255, 0.5);\n                border-radius: 20px;\n                backdrop-filter: blur(10px);\n                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);\n                border: 1px solid rgba(255, 255, 255, 0.3);\n            }\n\n            .logo {\n                font-size: 2.5rem;\n                font-weight: 700;\n                color: #2d2d2d;\n                margin-bottom: 10px;\n                letter-spacing: 0.5px;\n                line-height: 1.4;\n            }\n\n            .subtitle {\n                font-size: 1.1rem;\n                color: #4a4a4a;\n                margin-bottom: 20px;\n            }\n\n            .form-container {\n                background: rgba(255, 255, 255, 0.5);\n                border-radius: 20px;\n                padding: 30px;\n                backdrop-filter: blur(10px);\n                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);\n                margin-bottom: 20px;\n                border: 1px solid rgba(255, 255, 255, 0.3);\n            }\n\n            .form-section {\n                margin-bottom: 25px;\n            }\n\n            .section-title {\n                font-size: 1.2rem;\n                color: #2d2d2d;\n                margin-bottom: 15px;\n                padding-bottom: 8px;\n                border-bottom: 2px solid rgba(196, 196, 196, 0.6);\n                display: flex;\n                align-items: center;\n                font-weight: 600;\n            }\n\n            .section-number {\n    background: none;\n    color: #2d2d2d;\n    width: auto;\n    height: auto;\n    border-radius: 0;\n    display: inline;\n    margin-right: 10px;\n    font-size: 1.2rem;\n    font-weight: 600;\n}\n\n            .info-row {\n                display: flex;\n                margin: 15px 0;\n                padding: 12px 0;\n                border-bottom: 1px solid rgba(238, 238, 238, 0.7);\n            }\n\n            .info-label {\n                font-weight: 600;\n                color: #3a3a3a;\n                width: 120px;\n                flex-shrink: 0;\n            }\n\n            .info-value {\n                color: #2d2d2d;\n                flex: 1;\n            }\n\n            .success-message {\n                background: rgba(212, 237, 218, 0.8);\n                border: 2px solid rgba(40, 167, 69, 0.6);\n                color: #155724;\n                box-shadow: 0 4px 15px rgba(40, 167, 69, 0.2);\n                backdrop-filter: blur(10px);\n                padding: 20px;\n                border-radius: 15px;\n                margin: 20px 0;\n                text-align: center;\n                font-weight: 600;\n            }\n\n            .btn {\n                display: inline-block;\n                padding: 12px 25px;\n                background: rgba(74, 74, 74, 0.8);\n                color: white;\n                border: 2px solid rgba(74, 74, 74, 0.6);\n                border-radius: 15px;\n                font-size: 1rem;\n                font-weight: 600;\n                cursor: pointer;\n                transition: all 0.3s ease;\n                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);\n                text-decoration: none;\n                text-align: center;\n                margin: 10px 5px;\n                backdrop-filter: blur(10px);\n            }\n\n            .btn:hover {\n                transform: translateY(-2px);\n                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);\n                background: rgba(58, 58, 58, 0.9);\n            }\n\n            .notice-list {\n                color: #3a3a3a;\n                padding: 10px 0;\n            }\n\n            .notice-list ul {\n                list-style: none;\n                padding: 0;\n                margin: 15px 0;\n            }\n\n            .notice-list li {\n                padding: 8px 0;\n                border-left: 3px solid rgba(74, 74, 74, 0.6);\n                padding-left: 15px;\n                margin: 8px 0;\n                background: rgba(255, 255, 255, 0.3);\n                border-radius: 5px;\n                padding: 10px 15px;\n            }\n\n            .final-message {\n                text-align: center;\n                margin-top: 30px;\n                padding: 25px;\n                background: rgba(255, 255, 255, 0.4);\n                border-radius: 15px;\n                backdrop-filter: blur(10px);\n                border: 1px solid rgba(255, 255, 255, 0.3);\n            }\n\n            @media (max-width: 768px) {\n                .container {\n                    padding: 10px;\n                }\n\n                .logo {\n                    font-size: 2rem;\n                }\n\n                .form-container {\n                    padding: 20px;\n                }\n\n                .info-row {\n                    flex-direction: column;\n                }\n\n                .info-label {\n                    width: auto;\n                    margin-bottom: 5px;\n                }\n            }\n        </style>\n    </head>\n    <body>\n        <div class=\"container\">\n            <div class=\"header\">\n                <div class=\"logo\">🍽️ 북막골</div>\n                <div class=\"subtitle\">예약이 확정되었습니다!</div>\n            </div>\n\n            <div class=\"form-container\">\n                <div class=\"success-message\">\n                    ✅ ${data.name}님의 예약이 성공적으로 확정되었습니다! 🎉\n                </div>\n\n                <div class=\"form-section\">\n                    <h3 class=\"section-title\">\n                        <span class=\"section-number\">📋</span>\n                        예약 정보\n                    </h3>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">예약번호:</div>\n                        <div class=\"info-value\"><strong>${data.bookingNumber}</strong></div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">날짜:</div>\n                        <div class=\"info-value\">${data.bookingDate}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">시간:</div>\n                        <div class=\"info-value\">${data.bookingTime}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">지점:</div>\n                        <div class=\"info-value\">${data.branch}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">공간:</div>\n                        <div class=\"info-value\">${data.spaceInfo}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">인원:</div>\n                        <div class=\"info-value\">${data.guests}명</div>\n                    </div>\n                    ${data.specialRequest ? `\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">특별요청:</div>\n                        <div class=\"info-value\">${data.specialRequest}</div>\n                    </div>\n                    ` : ''}\n                </div>\n\n                <div class=\"form-section\">\n                    <h3 class=\"section-title\">\n                        <span class=\"section-number\">📍</span>\n                        오시는 길\n                    </h3>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">주소:</div>\n                        <div class=\"info-value\">${data.branchAddress}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">전화:</div>\n                        <div class=\"info-value\">${data.branchPhone}</div>\n                    </div>\n                    <div style=\"text-align: center; margin-top: 20px;\">\n                        <a href=\"${data.googleMapsLink}\" class=\"btn\">📍 길찾기</a>\n                    </div>\n                </div>\n\n                <div class=\"form-section\">\n                    <h3 class=\"section-title\">\n                        <span class=\"section-number\">⚠️</span>\n                        예약 안내\n                    </h3>\n                    <div class=\"notice-list\">\n                        <ul>\n                            <li>예약 취소/변경: 전화 또는 라인으로 연락주세요</li>\n                            <li>룸 예약: 평균 이용시간 3-4시간</li>\n                            <li>영업시간: 11:00-15:00, 16:00-22:00</li>\n                        </ul>\n                    </div>\n                </div>\n\n                <div class=\"final-message\">\n                    <p><strong>맛있는 식사 준비하고 기다리겠습니다!</strong></p>\n                    <p>감사합니다. 북막골 드림</p>\n                </div>\n            </div>\n        </div>\n    </body>\n    </html>\n    `\n  },\n  th: {\n    subject: `[Bookmakgol] การจองของคุณได้รับการยืนยันแล้ว - ${data.bookingNumber}`,\n    body: `\n    <!DOCTYPE html>\n    <html lang=\"th\">\n    <head>\n        <meta charset=\"UTF-8\">\n        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n        <title>การจองได้รับการยืนยัน</title>\n        <style>\n            * {\n                margin: 0;\n                padding: 0;\n                box-sizing: border-box;\n            }\n\n            body {\n                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n                background: linear-gradient(to bottom, #b0b0b0 0%, #9a9a9a 100%);\n                color: #2d2d2d;\n                line-height: 1.6;\n                min-height: 100vh;\n                padding: 20px;\n            }\n\n            .container {\n                max-width: 600px;\n                margin: 0 auto;\n                padding: 20px;\n            }\n\n            .header {\n                text-align: center;\n                margin-bottom: 30px;\n                padding: 30px 20px;\n                background: rgba(255, 255, 255, 0.5);\n                border-radius: 20px;\n                backdrop-filter: blur(10px);\n                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);\n                border: 1px solid rgba(255, 255, 255, 0.3);\n            }\n\n            .logo {\n                font-size: 2.5rem;\n                font-weight: 700;\n                color: #2d2d2d;\n                margin-bottom: 10px;\n                letter-spacing: 0.5px;\n                line-height: 1.4;\n            }\n\n            .subtitle {\n                font-size: 1.1rem;\n                color: #4a4a4a;\n                margin-bottom: 20px;\n            }\n\n            .form-container {\n                background: rgba(255, 255, 255, 0.5);\n                border-radius: 20px;\n                padding: 30px;\n                backdrop-filter: blur(10px);\n                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);\n                margin-bottom: 20px;\n                border: 1px solid rgba(255, 255, 255, 0.3);\n            }\n\n            .form-section {\n                margin-bottom: 25px;\n            }\n\n            .section-title {\n                font-size: 1.2rem;\n                color: #2d2d2d;\n                margin-bottom: 15px;\n                padding-bottom: 8px;\n                border-bottom: 2px solid rgba(196, 196, 196, 0.6);\n                display: flex;\n                align-items: center;\n                font-weight: 600;\n            }\n\n           .section-number {\n    background: none;\n    color: #2d2d2d;\n    width: auto;\n    height: auto;\n    border-radius: 0;\n    display: inline;\n    margin-right: 10px;\n    font-size: 1.2rem;\n    font-weight: 600;\n}\n\n            .info-row {\n                display: flex;\n                margin: 15px 0;\n                padding: 12px 0;\n                border-bottom: 1px solid rgba(238, 238, 238, 0.7);\n            }\n\n            .info-label {\n                font-weight: 600;\n                color: #3a3a3a;\n                width: 120px;\n                flex-shrink: 0;\n            }\n\n            .info-value {\n                color: #2d2d2d;\n                flex: 1;\n            }\n\n            .success-message {\n                background: rgba(212, 237, 218, 0.8);\n                border: 2px solid rgba(40, 167, 69, 0.6);\n                color: #155724;\n                box-shadow: 0 4px 15px rgba(40, 167, 69, 0.2);\n                backdrop-filter: blur(10px);\n                padding: 20px;\n                border-radius: 15px;\n                margin: 20px 0;\n                text-align: center;\n                font-weight: 600;\n            }\n\n            .btn {\n                display: inline-block;\n                padding: 12px 25px;\n                background: rgba(74, 74, 74, 0.8);\n                color: white;\n                border: 2px solid rgba(74, 74, 74, 0.6);\n                border-radius: 15px;\n                font-size: 1rem;\n                font-weight: 600;\n                cursor: pointer;\n                transition: all 0.3s ease;\n                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);\n                text-decoration: none;\n                text-align: center;\n                margin: 10px 5px;\n                backdrop-filter: blur(10px);\n            }\n\n            .btn:hover {\n                transform: translateY(-2px);\n                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);\n                background: rgba(58, 58, 58, 0.9);\n            }\n\n            .notice-list {\n                color: #3a3a3a;\n                padding: 10px 0;\n            }\n\n            .notice-list ul {\n                list-style: none;\n                padding: 0;\n                margin: 15px 0;\n            }\n\n            .notice-list li {\n                padding: 8px 0;\n                border-left: 3px solid rgba(74, 74, 74, 0.6);\n                padding-left: 15px;\n                margin: 8px 0;\n                background: rgba(255, 255, 255, 0.3);\n                border-radius: 5px;\n                padding: 10px 15px;\n            }\n\n            .final-message {\n                text-align: center;\n                margin-top: 30px;\n                padding: 25px;\n                background: rgba(255, 255, 255, 0.4);\n                border-radius: 15px;\n                backdrop-filter: blur(10px);\n                border: 1px solid rgba(255, 255, 255, 0.3);\n            }\n\n            @media (max-width: 768px) {\n                .container {\n                    padding: 10px;\n                }\n\n                .logo {\n                    font-size: 2rem;\n                }\n\n                .form-container {\n                    padding: 20px;\n                }\n\n                .info-row {\n                    flex-direction: column;\n                }\n\n                .info-label {\n                    width: auto;\n                    margin-bottom: 5px;\n                }\n            }\n        </style>\n    </head>\n    <body>\n        <div class=\"container\">\n            <div class=\"header\">\n                <div class=\"logo\">🍽️ บุกมักกล</div>\n                <div class=\"subtitle\">การจองของคุณได้รับการยืนยันแล้ว!</div>\n            </div>\n\n            <div class=\"form-container\">\n                <div class=\"success-message\">\n                    ✅ การจองของคุณ${data.name} ได้รับการยืนยันเรียบร้อยแล้ว! 🎉\n                </div>\n\n                <div class=\"form-section\">\n                    <h3 class=\"section-title\">\n                        <span class=\"section-number\">📋</span>\n                        ข้อมูลการจอง\n                    </h3>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">เลขที่การจอง:</div>\n                        <div class=\"info-value\"><strong>${data.bookingNumber}</strong></div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">วันที่:</div>\n                        <div class=\"info-value\">${data.bookingDate}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">เวลา:</div>\n                        <div class=\"info-value\">${data.bookingTime}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">สาขา:</div>\n                        <div class=\"info-value\">${data.branch}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">พื้นที่:</div>\n                        <div class=\"info-value\">${data.spaceInfo}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">จำนวน:</div>\n                        <div class=\"info-value\">${data.guests} ท่าน</div>\n                    </div>\n                    ${data.specialRequest ? `\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">ความต้องการพิเศษ:</div>\n                        <div class=\"info-value\">${data.specialRequest}</div>\n                    </div>\n                    ` : ''}\n                </div>\n\n                <div class=\"form-section\">\n                    <h3 class=\"section-title\">\n                        <span class=\"section-number\">📍</span>\n                        ที่ตั้ง\n                    </h3>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">ที่อยู่:</div>\n                        <div class=\"info-value\">${data.branchAddress}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">โทร:</div>\n                        <div class=\"info-value\">${data.branchPhone}</div>\n                    </div>\n                    <div style=\"text-align: center; margin-top: 20px;\">\n                        <a href=\"${data.googleMapsLink}\" class=\"btn\">📍 นำทาง</a>\n                    </div>\n                </div>\n\n                <div class=\"form-section\">\n                    <h3 class=\"section-title\">\n                        <span class=\"section-number\">⚠️</span>\n                        ข้อมูลการจอง\n                    </h3>\n                    <div class=\"notice-list\">\n                        <ul>\n                            <li>ยกเลิก/เปลี่ยนแปลง: โทรหรือแจ้งทาง Line</li>\n                            <li>การจองห้อง: เวลาใช้งานโดยเฉลี่ย 3-4 ชั่วโมง</li>\n                            <li>เวลาเปิดให้บริการ: 11:00-15:00, 16:00-22:00</li>\n                        </ul>\n                    </div>\n                </div>\n\n                <div class=\"final-message\">\n                    <p><strong>เตรียมอาหารอร่อยรอคุณอยู่นะคะ/ครับ!</strong></p>\n                    <p>ขอบคุณค่ะ/ครับ Bookmakgol</p>\n                </div>\n            </div>\n        </div>\n    </body>\n    </html>\n    `\n  },\n  en: {\n    subject: `[Bookmakgol] Your Reservation is Confirmed - ${data.bookingNumber}`,\n    body: `\n    <!DOCTYPE html>\n    <html lang=\"en\">\n    <head>\n        <meta charset=\"UTF-8\">\n        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n        <title>Reservation Confirmed</title>\n        <style>\n            * {\n                margin: 0;\n                padding: 0;\n                box-sizing: border-box;\n            }\n\n            body {\n                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n                background: linear-gradient(to bottom, #b0b0b0 0%, #9a9a9a 100%);\n                color: #2d2d2d;\n                line-height: 1.6;\n                min-height: 100vh;\n                padding: 20px;\n            }\n\n            .container {\n                max-width: 600px;\n                margin: 0 auto;\n                padding: 20px;\n            }\n\n            .header {\n                text-align: center;\n                margin-bottom: 30px;\n                padding: 30px 20px;\n                background: rgba(255, 255, 255, 0.5);\n                border-radius: 20px;\n                backdrop-filter: blur(10px);\n                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);\n                border: 1px solid rgba(255, 255, 255, 0.3);\n            }\n\n            .logo {\n                font-size: 2.5rem;\n                font-weight: 700;\n                color: #2d2d2d;\n                margin-bottom: 10px;\n                letter-spacing: 0.5px;\n                line-height: 1.4;\n            }\n\n            .subtitle {\n                font-size: 1.1rem;\n                color: #4a4a4a;\n                margin-bottom: 20px;\n            }\n\n            .form-container {\n                background: rgba(255, 255, 255, 0.5);\n                border-radius: 20px;\n                padding: 30px;\n                backdrop-filter: blur(10px);\n                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);\n                margin-bottom: 20px;\n                border: 1px solid rgba(255, 255, 255, 0.3);\n            }\n\n            .form-section {\n                margin-bottom: 25px;\n            }\n\n            .section-title {\n                font-size: 1.2rem;\n                color: #2d2d2d;\n                margin-bottom: 15px;\n                padding-bottom: 8px;\n                border-bottom: 2px solid rgba(196, 196, 196, 0.6);\n                display: flex;\n                align-items: center;\n                font-weight: 600;\n            }\n\n        .section-number {\n    background: none;\n    color: #2d2d2d;\n    width: auto;\n    height: auto;\n    border-radius: 0;\n    display: inline;\n    margin-right: 10px;\n    font-size: 1.2rem;\n    font-weight: 600;\n}\n\n            .info-row {\n                display: flex;\n                margin: 15px 0;\n                padding: 12px 0;\n                border-bottom: 1px solid rgba(238, 238, 238, 0.7);\n            }\n\n            .info-label {\n                font-weight: 600;\n                color: #3a3a3a;\n                width: 120px;\n                flex-shrink: 0;\n            }\n\n            .info-value {\n                color: #2d2d2d;\n                flex: 1;\n            }\n\n            .success-message {\n                background: rgba(212, 237, 218, 0.8);\n                border: 2px solid rgba(40, 167, 69, 0.6);\n                color: #155724;\n                box-shadow: 0 4px 15px rgba(40, 167, 69, 0.2);\n                backdrop-filter: blur(10px);\n                padding: 20px;\n                border-radius: 15px;\n                margin: 20px 0;\n                text-align: center;\n                font-weight: 600;\n            }\n\n            .btn {\n                display: inline-block;\n                padding: 12px 25px;\n                background: rgba(74, 74, 74, 0.8);\n                color: white;\n                border: 2px solid rgba(74, 74, 74, 0.6);\n                border-radius: 15px;\n                font-size: 1rem;\n                font-weight: 600;\n                cursor: pointer;\n                transition: all 0.3s ease;\n                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);\n                text-decoration: none;\n                text-align: center;\n                margin: 10px 5px;\n                backdrop-filter: blur(10px);\n            }\n\n            .btn:hover {\n                transform: translateY(-2px);\n                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);\n                background: rgba(58, 58, 58, 0.9);\n            }\n\n            .notice-list {\n                color: #3a3a3a;\n                padding: 10px 0;\n            }\n\n            .notice-list ul {\n                list-style: none;\n                padding: 0;\n                margin: 15px 0;\n            }\n\n            .notice-list li {\n                padding: 8px 0;\n                border-left: 3px solid rgba(74, 74, 74, 0.6);\n                padding-left: 15px;\n                margin: 8px 0;\n                background: rgba(255, 255, 255, 0.3);\n                border-radius: 5px;\n                padding: 10px 15px;\n            }\n\n            .final-message {\n                text-align: center;\n                margin-top: 30px;\n                padding: 25px;\n                background: rgba(255, 255, 255, 0.4);\n                border-radius: 15px;\n                backdrop-filter: blur(10px);\n                border: 1px solid rgba(255, 255, 255, 0.3);\n            }\n\n            @media (max-width: 768px) {\n                .container {\n                    padding: 10px;\n                }\n\n                .logo {\n                    font-size: 2rem;\n                }\n\n                .form-container {\n                    padding: 20px;\n                }\n\n                .info-row {\n                    flex-direction: column;\n                }\n\n                .info-label {\n                    width: auto;\n                    margin-bottom: 5px;\n                }\n            }\n        </style>\n    </head>\n    <body>\n        <div class=\"container\">\n            <div class=\"header\">\n                <div class=\"logo\">🍽️ Bookmakgol</div>\n                <div class=\"subtitle\">Your Reservation is Confirmed!</div>\n            </div>\n\n            <div class=\"form-container\">\n                <div class=\"success-message\">\n                    ✅ Dear ${data.name}, your reservation has been successfully confirmed! 🎉\n                </div>\n\n                <div class=\"form-section\">\n                    <h3 class=\"section-title\">\n                        <span class=\"section-number\">📋</span>\n                        Reservation Details\n                    </h3>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">Booking No:</div>\n                        <div class=\"info-value\"><strong>${data.bookingNumber}</strong></div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">Date:</div>\n                        <div class=\"info-value\">${data.bookingDate}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">Time:</div>\n                        <div class=\"info-value\">${data.bookingTime}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">Branch:</div>\n                        <div class=\"info-value\">${data.branch}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">Space:</div>\n                        <div class=\"info-value\">${data.spaceInfo}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">Guests:</div>\n                        <div class=\"info-value\">${data.guests} people</div>\n                    </div>\n                    ${data.specialRequest ? `\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">Special Request:</div>\n                        <div class=\"info-value\">${data.specialRequest}</div>\n                    </div>\n                    ` : ''}\n                </div>\n\n                <div class=\"form-section\">\n                    <h3 class=\"section-title\">\n                        <span class=\"section-number\">📍</span>\n                        Location\n                    </h3>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">Address:</div>\n                        <div class=\"info-value\">${data.branchAddress}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">Phone:</div>\n                        <div class=\"info-value\">${data.branchPhone}</div>\n                    </div>\n                    <div style=\"text-align: center; margin-top: 20px;\">\n                        <a href=\"${data.googleMapsLink}\" class=\"btn\">📍 Directions</a>\n                    </div>\n                </div>\n\n                <div class=\"form-section\">\n                    <h3 class=\"section-title\">\n                        <span class=\"section-number\">⚠️</span>\n                        Important Information\n                    </h3>\n                    <div class=\"notice-list\">\n                        <ul>\n                            <li>Cancellation/Changes: Please call or contact via Line</li>\n                            <li>Room Reservation: Average usage time 3-4 hours</li>\n                            <li>Operating Hours: 11:00-15:00, 16:00-22:00</li>\n                        </ul>\n                    </div>\n                </div>\n\n                <div class=\"final-message\">\n                    <p><strong>We're preparing delicious food and waiting for you!</strong></p>\n                    <p>Thank you, Bookmakgol</p>\n                </div>\n            </div>\n        </div>\n    </body>\n    </html>\n    `\n  }\n};\n\nconst template = templates[data.language] || templates.ko;\n\nreturn [{\n  json: {\n    ...data,\n    emailSubject: template.subject,\n    emailBody: template.body\n  }\n}];"
+      },
+      "id": "451a699d-2699-4c38-b828-34d49acf605d",
+      "name": "확정 이메일 템플릿",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1408,
+        1072
+      ]
+    },
+    {
+      "parameters": {
+        "functionCode": "// 취소 이메일 템플릿 (확정 이메일과 동일한 구조)\nconst data = items[0].json;\n\n// 🚨 이 부분을 추가하세요! (Line 3-4에 추가)\nconst dateFormatted = data.dateFormatted || 'N/A';\nconst timeFormatted = data.timeFormatted || 'N/A';\n\n// 언어 확인\nconst language = data.language || 'th';\n\n// 지점명 정의\nconst branchInfo = {\n  'Ekamai': '에까마이',\n  'Phrom Phong': '프롬퐁'\n};\n\nlet branchName;\nif (language === 'ko') {\n  branchName = branchInfo[data.branch] || data.branch;\n} else if (language === 'th') {\n  branchName = data.branch === 'Ekamai' ? 'สาขาเอกมัย' : 'สาขาพร้อมพงษ์';\n} else {\n  branchName = data.branch;\n}\n\n// ... 나머지 코드 ...\n\nconst templates = {\n  ko: {\n    subject: `[북막골] 예약이 취소되었습니다 - ${data.bookingNumber}`,\n    body: `\n    <!DOCTYPE html>\n    <html lang=\"ko\">\n    <head>\n        <meta charset=\"UTF-8\">\n        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n        <title>예약 취소</title>\n        <style>\n            * {\n                margin: 0;\n                padding: 0;\n                box-sizing: border-box;\n            }\n\n            body {\n                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n                background: linear-gradient(to bottom, #b0b0b0 0%, #9a9a9a 100%);\n                color: #2d2d2d;\n                line-height: 1.6;\n                min-height: 100vh;\n                padding: 20px;\n            }\n\n            .container {\n                max-width: 600px;\n                margin: 0 auto;\n                padding: 20px;\n            }\n\n            .header {\n                text-align: center;\n                margin-bottom: 30px;\n                padding: 30px 20px;\n                background: rgba(255, 255, 255, 0.5);\n                border-radius: 20px;\n                backdrop-filter: blur(10px);\n                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);\n                border: 1px solid rgba(255, 255, 255, 0.3);\n            }\n\n            .logo {\n                font-size: 2.5rem;\n                font-weight: 700;\n                color: #2d2d2d;\n                margin-bottom: 10px;\n                letter-spacing: 0.5px;\n                line-height: 1.4;\n            }\n\n            .subtitle {\n                font-size: 1.1rem;\n                color: #4a4a4a;\n                margin-bottom: 20px;\n            }\n\n            .form-container {\n                background: rgba(255, 255, 255, 0.5);\n                border-radius: 20px;\n                padding: 30px;\n                backdrop-filter: blur(10px);\n                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);\n                margin-bottom: 20px;\n                border: 1px solid rgba(255, 255, 255, 0.3);\n            }\n\n            .form-section {\n                margin-bottom: 25px;\n            }\n\n            .section-title {\n                font-size: 1.2rem;\n                color: #2d2d2d;\n                margin-bottom: 15px;\n                padding-bottom: 8px;\n                border-bottom: 2px solid rgba(196, 196, 196, 0.6);\n                display: flex;\n                align-items: center;\n                font-weight: 600;\n            }\n\n            .section-number {\n                background: none;\n                color: #2d2d2d;\n                width: auto;\n                height: auto;\n                border-radius: 0;\n                display: inline;\n                margin-right: 10px;\n                font-size: 1.2rem;\n                font-weight: 600;\n            }\n\n            .info-row {\n                display: flex;\n                margin: 15px 0;\n                padding: 12px 0;\n                border-bottom: 1px solid rgba(238, 238, 238, 0.7);\n            }\n\n            .info-label {\n                font-weight: 600;\n                color: #3a3a3a;\n                width: 120px;\n                flex-shrink: 0;\n            }\n\n            .info-value {\n                color: #2d2d2d;\n                flex: 1;\n            }\n\n            .cancel-message {\n                background: rgba(248, 215, 218, 0.8);\n                border: 2px solid rgba(220, 53, 69, 0.6);\n                color: #721c24;\n                box-shadow: 0 4px 15px rgba(220, 53, 69, 0.2);\n                backdrop-filter: blur(10px);\n                padding: 20px;\n                border-radius: 15px;\n                margin: 20px 0;\n                text-align: center;\n                font-weight: 600;\n            }\n\n            .btn {\n                display: inline-block;\n                padding: 12px 25px;\n                background: rgba(74, 74, 74, 0.8);\n                color: white;\n                border: 2px solid rgba(74, 74, 74, 0.6);\n                border-radius: 15px;\n                font-size: 1rem;\n                font-weight: 600;\n                cursor: pointer;\n                transition: all 0.3s ease;\n                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);\n                text-decoration: none;\n                text-align: center;\n                margin: 10px 5px;\n                backdrop-filter: blur(10px);\n            }\n\n            .btn:hover {\n                transform: translateY(-2px);\n                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);\n                background: rgba(58, 58, 58, 0.9);\n            }\n\n            .final-message {\n                text-align: center;\n                margin-top: 30px;\n                padding: 25px;\n                background: rgba(255, 255, 255, 0.4);\n                border-radius: 15px;\n                backdrop-filter: blur(10px);\n                border: 1px solid rgba(255, 255, 255, 0.3);\n            }\n\n            @media (max-width: 768px) {\n                .container {\n                    padding: 10px;\n                }\n\n                .logo {\n                    font-size: 2rem;\n                }\n\n                .form-container {\n                    padding: 20px;\n                }\n\n                .info-row {\n                    flex-direction: column;\n                }\n\n                .info-label {\n                    width: auto;\n                    margin-bottom: 5px;\n                }\n            }\n        </style>\n    </head>\n    <body>\n        <div class=\"container\">\n            <div class=\"header\">\n                <div class=\"logo\">🍽️ 북막골</div>\n                <div class=\"subtitle\">예약이 취소되었습니다</div>\n            </div>\n\n            <div class=\"form-container\">\n                <div class=\"cancel-message\">\n                    ❌ ${data.name}님의 예약이 취소되었습니다\n                </div>\n\n                <div class=\"form-section\">\n                    <h3 class=\"section-title\">\n                        <span class=\"section-number\">📋</span>\n                        취소된 예약 정보\n                    </h3>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">예약번호:</div>\n                        <div class=\"info-value\"><strong>${data.bookingNumber}</strong></div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">날짜:</div>\n                        <div class=\"info-value\">${data.bookingDate}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">시간:</div>\n                        <div class=\"info-value\">${data.bookingTime}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">지점:</div>\n                        <div class=\"info-value\">${data.branch}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">공간:</div>\n                        <div class=\"info-value\">${data.spaceInfo}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">인원:</div>\n                        <div class=\"info-value\">${data.guests}명</div>\n                    </div>\n                </div>\n\n                <div class=\"form-section\">\n                    <h3 class=\"section-title\">\n                        <span class=\"section-number\">📍</span>\n                        문의처\n                    </h3>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">주소:</div>\n                        <div class=\"info-value\">${data.branchAddress}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">전화:</div>\n                        <div class=\"info-value\">${data.branchPhone}</div>\n                    </div>\n                    <div style=\"text-align: center; margin-top: 20px;\">\n                        <a href=\"${data.googleMapsLink}\" class=\"btn\">📍 길찾기</a>\n                    </div>\n                </div>\n\n                <div class=\"final-message\">\n                    <p><strong>다음에 더 좋은 서비스로 찾아뵙겠습니다</strong></p>\n                    <p>감사합니다. 북막골 드림</p>\n                </div>\n            </div>\n        </div>\n    </body>\n    </html>\n    `\n  },\n  th: {\n    subject: `[Bookmakgol] การจองของคุณถูกยกเลิกแล้ว - ${data.bookingNumber}`,\n    body: `\n    <!DOCTYPE html>\n    <html lang=\"th\">\n    <head>\n        <meta charset=\"UTF-8\">\n        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n        <title>การจองถูกยกเลิก</title>\n        <style>\n            * {\n                margin: 0;\n                padding: 0;\n                box-sizing: border-box;\n            }\n\n            body {\n                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n                background: linear-gradient(to bottom, #b0b0b0 0%, #9a9a9a 100%);\n                color: #2d2d2d;\n                line-height: 1.6;\n                min-height: 100vh;\n                padding: 20px;\n            }\n\n            .container {\n                max-width: 600px;\n                margin: 0 auto;\n                padding: 20px;\n            }\n\n            .header {\n                text-align: center;\n                margin-bottom: 30px;\n                padding: 30px 20px;\n                background: rgba(255, 255, 255, 0.5);\n                border-radius: 20px;\n                backdrop-filter: blur(10px);\n                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);\n                border: 1px solid rgba(255, 255, 255, 0.3);\n            }\n\n            .logo {\n                font-size: 2.5rem;\n                font-weight: 700;\n                color: #2d2d2d;\n                margin-bottom: 10px;\n                letter-spacing: 0.5px;\n                line-height: 1.4;\n            }\n\n            .subtitle {\n                font-size: 1.1rem;\n                color: #4a4a4a;\n                margin-bottom: 20px;\n            }\n\n            .form-container {\n                background: rgba(255, 255, 255, 0.5);\n                border-radius: 20px;\n                padding: 30px;\n                backdrop-filter: blur(10px);\n                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);\n                margin-bottom: 20px;\n                border: 1px solid rgba(255, 255, 255, 0.3);\n            }\n\n            .form-section {\n                margin-bottom: 25px;\n            }\n\n            .section-title {\n                font-size: 1.2rem;\n                color: #2d2d2d;\n                margin-bottom: 15px;\n                padding-bottom: 8px;\n                border-bottom: 2px solid rgba(196, 196, 196, 0.6);\n                display: flex;\n                align-items: center;\n                font-weight: 600;\n            }\n\n            .section-number {\n                background: none;\n                color: #2d2d2d;\n                width: auto;\n                height: auto;\n                border-radius: 0;\n                display: inline;\n                margin-right: 10px;\n                font-size: 1.2rem;\n                font-weight: 600;\n            }\n\n            .info-row {\n                display: flex;\n                margin: 15px 0;\n                padding: 12px 0;\n                border-bottom: 1px solid rgba(238, 238, 238, 0.7);\n            }\n\n            .info-label {\n                font-weight: 600;\n                color: #3a3a3a;\n                width: 120px;\n                flex-shrink: 0;\n            }\n\n            .info-value {\n                color: #2d2d2d;\n                flex: 1;\n            }\n\n            .cancel-message {\n                background: rgba(248, 215, 218, 0.8);\n                border: 2px solid rgba(220, 53, 69, 0.6);\n                color: #721c24;\n                box-shadow: 0 4px 15px rgba(220, 53, 69, 0.2);\n                backdrop-filter: blur(10px);\n                padding: 20px;\n                border-radius: 15px;\n                margin: 20px 0;\n                text-align: center;\n                font-weight: 600;\n            }\n\n            .btn {\n                display: inline-block;\n                padding: 12px 25px;\n                background: rgba(74, 74, 74, 0.8);\n                color: white;\n                border: 2px solid rgba(74, 74, 74, 0.6);\n                border-radius: 15px;\n                font-size: 1rem;\n                font-weight: 600;\n                cursor: pointer;\n                transition: all 0.3s ease;\n                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);\n                text-decoration: none;\n                text-align: center;\n                margin: 10px 5px;\n                backdrop-filter: blur(10px);\n            }\n\n            .btn:hover {\n                transform: translateY(-2px);\n                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);\n                background: rgba(58, 58, 58, 0.9);\n            }\n\n            .final-message {\n                text-align: center;\n                margin-top: 30px;\n                padding: 25px;\n                background: rgba(255, 255, 255, 0.4);\n                border-radius: 15px;\n                backdrop-filter: blur(10px);\n                border: 1px solid rgba(255, 255, 255, 0.3);\n            }\n\n            @media (max-width: 768px) {\n                .container {\n                    padding: 10px;\n                }\n\n                .logo {\n                    font-size: 2rem;\n                }\n\n                .form-container {\n                    padding: 20px;\n                }\n\n                .info-row {\n                    flex-direction: column;\n                }\n\n                .info-label {\n                    width: auto;\n                    margin-bottom: 5px;\n                }\n            }\n        </style>\n    </head>\n    <body>\n        <div class=\"container\">\n            <div class=\"header\">\n                <div class=\"logo\">🍽️ บุกมักกล</div>\n                <div class=\"subtitle\">การจองถูกยกเลิกแล้ว</div>\n            </div>\n\n            <div class=\"form-container\">\n                <div class=\"cancel-message\">\n                    ❌ การจองของคุณ${data.name} ถูกยกเลิกแล้ว\n                </div>\n\n                <div class=\"form-section\">\n                    <h3 class=\"section-title\">\n                        <span class=\"section-number\">📋</span>\n                        ข้อมูลการจองที่ยกเลิก\n                    </h3>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">เลขที่การจอง:</div>\n                        <div class=\"info-value\"><strong>${data.bookingNumber}</strong></div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">วันที่:</div>\n                        <div class=\"info-value\">${data.bookingDate}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">เวลา:</div>\n                        <div class=\"info-value\">${data.bookingTime}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">สาขา:</div>\n                        <div class=\"info-value\">${data.branch}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">พื้นที่:</div>\n                        <div class=\"info-value\">${data.spaceInfo}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">จำนวน:</div>\n                        <div class=\"info-value\">${data.guests} ท่าน</div>\n                    </div>\n                </div>\n\n                <div class=\"form-section\">\n                    <h3 class=\"section-title\">\n                        <span class=\"section-number\">📍</span>\n                        ติดต่อสอบถาม\n                    </h3>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">ที่อยู่:</div>\n                        <div class=\"info-value\">${data.branchAddress}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">โทร:</div>\n                        <div class=\"info-value\">${data.branchPhone}</div>\n                    </div>\n                    <div style=\"text-align: center; margin-top: 20px;\">\n                        <a href=\"${data.googleMapsLink}\" class=\"btn\">📍 นำทาง</a>\n                    </div>\n                </div>\n\n                <div class=\"final-message\">\n                    <p><strong>ขอบคุณที่ให้ความสนใจ</strong></p>\n                    <p>หวังว่าจะได้ให้บริการคุณในโอกาสต่อไป Bookmakgol</p>\n                </div>\n            </div>\n        </div>\n    </body>\n    </html>\n    `\n  },\n  en: {\n    subject: `[Bookmakgol] Your reservation has been cancelled - ${data.bookingNumber}`,\n    body: `\n    <!DOCTYPE html>\n    <html lang=\"en\">\n    <head>\n        <meta charset=\"UTF-8\">\n        <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n        <title>Reservation Cancelled</title>\n        <style>\n            * {\n                margin: 0;\n                padding: 0;\n                box-sizing: border-box;\n            }\n\n            body {\n                font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n                background: linear-gradient(to bottom, #b0b0b0 0%, #9a9a9a 100%);\n                color: #2d2d2d;\n                line-height: 1.6;\n                min-height: 100vh;\n                padding: 20px;\n            }\n\n            .container {\n                max-width: 600px;\n                margin: 0 auto;\n                padding: 20px;\n            }\n\n            .header {\n                text-align: center;\n                margin-bottom: 30px;\n                padding: 30px 20px;\n                background: rgba(255, 255, 255, 0.5);\n                border-radius: 20px;\n                backdrop-filter: blur(10px);\n                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);\n                border: 1px solid rgba(255, 255, 255, 0.3);\n            }\n\n            .logo {\n                font-size: 2.5rem;\n                font-weight: 700;\n                color: #2d2d2d;\n                margin-bottom: 10px;\n                letter-spacing: 0.5px;\n                line-height: 1.4;\n            }\n\n            .subtitle {\n                font-size: 1.1rem;\n                color: #4a4a4a;\n                margin-bottom: 20px;\n            }\n\n            .form-container {\n                background: rgba(255, 255, 255, 0.5);\n                border-radius: 20px;\n                padding: 30px;\n                backdrop-filter: blur(10px);\n                box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);\n                margin-bottom: 20px;\n                border: 1px solid rgba(255, 255, 255, 0.3);\n            }\n\n            .form-section {\n                margin-bottom: 25px;\n            }\n\n            .section-title {\n                font-size: 1.2rem;\n                color: #2d2d2d;\n                margin-bottom: 15px;\n                padding-bottom: 8px;\n                border-bottom: 2px solid rgba(196, 196, 196, 0.6);\n                display: flex;\n                align-items: center;\n                font-weight: 600;\n            }\n\n            .section-number {\n                background: none;\n                color: #2d2d2d;\n                width: auto;\n                height: auto;\n                border-radius: 0;\n                display: inline;\n                margin-right: 10px;\n                font-size: 1.2rem;\n                font-weight: 600;\n            }\n\n            .info-row {\n                display: flex;\n                margin: 15px 0;\n                padding: 12px 0;\n                border-bottom: 1px solid rgba(238, 238, 238, 0.7);\n            }\n\n            .info-label {\n                font-weight: 600;\n                color: #3a3a3a;\n                width: 120px;\n                flex-shrink: 0;\n            }\n\n            .info-value {\n                color: #2d2d2d;\n                flex: 1;\n            }\n\n            .cancel-message {\n                background: rgba(248, 215, 218, 0.8);\n                border: 2px solid rgba(220, 53, 69, 0.6);\n                color: #721c24;\n                box-shadow: 0 4px 15px rgba(220, 53, 69, 0.2);\n                backdrop-filter: blur(10px);\n                padding: 20px;\n                border-radius: 15px;\n                margin: 20px 0;\n                text-align: center;\n                font-weight: 600;\n            }\n\n            .btn {\n                display: inline-block;\n                padding: 12px 25px;\n                background: rgba(74, 74, 74, 0.8);\n                color: white;\n                border: 2px solid rgba(74, 74, 74, 0.6);\n                border-radius: 15px;\n                font-size: 1rem;\n                font-weight: 600;\n                cursor: pointer;\n                transition: all 0.3s ease;\n                box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);\n                text-decoration: none;\n                text-align: center;\n                margin: 10px 5px;\n                backdrop-filter: blur(10px);\n            }\n\n            .btn:hover {\n                transform: translateY(-2px);\n                box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);\n                background: rgba(58, 58, 58, 0.9);\n            }\n\n            .final-message {\n                text-align: center;\n                margin-top: 30px;\n                padding: 25px;\n                background: rgba(255, 255, 255, 0.4);\n                border-radius: 15px;\n                backdrop-filter: blur(10px);\n                border: 1px solid rgba(255, 255, 255, 0.3);\n            }\n\n            @media (max-width: 768px) {\n                .container {\n                    padding: 10px;\n                }\n\n                .logo {\n                    font-size: 2rem;\n                }\n\n                .form-container {\n                    padding: 20px;\n                }\n\n                .info-row {\n                    flex-direction: column;\n                }\n\n                .info-label {\n                    width: auto;\n                    margin-bottom: 5px;\n                }\n            }\n        </style>\n    </head>\n    <body>\n        <div class=\"container\">\n            <div class=\"header\">\n                <div class=\"logo\">🍽️ Bookmakgol</div>\n                <div class=\"subtitle\">Your Reservation Has Been Cancelled</div>\n            </div>\n\n            <div class=\"form-container\">\n                <div class=\"cancel-message\">\n                    ❌ Dear ${data.name}, your reservation has been cancelled\n                </div>\n\n                <div class=\"form-section\">\n                    <h3 class=\"section-title\">\n                        <span class=\"section-number\">📋</span>\n                        Cancelled Reservation Details\n                    </h3>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">Booking No:</div>\n                        <div class=\"info-value\"><strong>${data.bookingNumber}</strong></div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">Date:</div>\n                        <div class=\"info-value\">${data.bookingDate}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">Time:</div>\n                        <div class=\"info-value\">${data.bookingTime}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">Branch:</div>\n                        <div class=\"info-value\">${data.branch}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">Space:</div>\n                        <div class=\"info-value\">${data.spaceInfo}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">Guests:</div>\n                        <div class=\"info-value\">${data.guests} people</div>\n                    </div>\n                </div>\n\n                <div class=\"form-section\">\n                    <h3 class=\"section-title\">\n                        <span class=\"section-number\">📍</span>\n                        Contact Information\n                    </h3>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">Address:</div>\n                        <div class=\"info-value\">${data.branchAddress}</div>\n                    </div>\n                    <div class=\"info-row\">\n                        <div class=\"info-label\">Phone:</div>\n                        <div class=\"info-value\">${data.branchPhone}</div>\n                    </div>\n                    <div style=\"text-align: center; margin-top: 20px;\">\n                        <a href=\"${data.googleMapsLink}\" class=\"btn\">📍 Directions</a>\n                    </div>\n                </div>\n\n                <div class=\"final-message\">\n                    <p><strong>Thank you for your interest</strong></p>\n                    <p>We hope to serve you again in the future. Bookmakgol</p>\n                </div>\n            </div>\n        </div>\n    </body>\n    </html>\n    `\n  }\n};\n\nconst template = templates[data.language] || templates.ko;\n\nreturn [{\n  json: {\n    emailSubject: template.subject,\n    emailBody: template.body,\n    email: data.email  // 🚨 이 줄을 추가!\n  }\n}];"
+      },
+      "id": "cc2fb639-750b-4526-a39e-0fda45a17f00",
+      "name": "취소 이메일 템플릿",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        1408,
+        1280
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "message",
+        "subject": "={{$json.emailSubject}}",
+        "includeHtml": true,
+        "htmlMessage": "={{$json.emailBody}}",
+        "message": "=",
+        "toList": [
+          "={{$json.email}}"
+        ],
+        "additionalFields": {}
+      },
+      "id": "7875cbc9-c123-46fa-b2c9-ca6f648f7594",
+      "name": "고객 이메일 발송",
+      "type": "n8n-nodes-base.gmail",
+      "typeVersion": 1,
+      "position": [
+        1616,
+        1168
+      ],
+      "credentials": {
+        "gmailOAuth2": {
+          "id": "unDkKIDCn6d2hi5Z",
+          "name": "Bookmagol Gmail account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"error\",\n  \"message\": \"{{$json.message}}\"\n}",
+        "options": {}
+      },
+      "id": "e68ee750-1b34-4169-af6d-52b92bac43b1",
+      "name": "오류 응답1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        0,
+        976
+      ]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "number": [
+            {
+              "value1": "={{$json.length}}",
+              "operation": "equal"
+            }
+          ]
+        }
+      },
+      "id": "ee5aee2b-35ca-43b4-8022-32a4b18d066a",
+      "name": "예약 존재 확인1",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 1,
+      "position": [
+        192,
+        1168
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "text",
+        "responseBody": "=<!DOCTYPE html>\n<html lang=\"th\">\n<head>\n    <meta charset=\"UTF-8\">\n    <meta name=\"viewport\" content=\"width=device-width, initial-scale=1.0\">\n    <title>ดำเนินการเสร็จสิ้น | Bookmakgol Admin</title>\n    <style>\n        * {\n            margin: 0;\n            padding: 0;\n            box-sizing: border-box;\n        }\n\n        body {\n            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;\n            background: linear-gradient(to bottom, #b0b0b0 0%, #9a9a9a 100%);\n            color: #2d2d2d;\n            line-height: 1.6;\n            min-height: 100vh;\n            display: flex;\n            justify-content: center;\n            align-items: center;\n            padding: 20px;\n        }\n\n        .container {\n            max-width: 500px;\n            width: 100%;\n            text-align: center;\n            background: rgba(255, 255, 255, 0.5);\n            border-radius: 20px;\n            padding: 40px 30px;\n            backdrop-filter: blur(10px);\n            box-shadow: 0 4px 20px rgba(0, 0, 0, 0.15);\n            border: 1px solid rgba(255, 255, 255, 0.3);\n        }\n\n        .checkmark {\n            font-size: 80px;\n            margin-bottom: 20px;\n            animation: bounce 1s ease-in-out;\n            filter: drop-shadow(0 2px 4px rgba(0, 0, 0, 0.1));\n        }\n\n        .checkmark.confirm {\n            color: #28a745;\n        }\n\n        .checkmark.cancel {\n            color: #dc3545;\n        }\n\n        @keyframes bounce {\n            0%, 20%, 50%, 80%, 100% { transform: translateY(0); }\n            40% { transform: translateY(-10px); }\n            60% { transform: translateY(-5px); }\n        }\n\n        .logo {\n            font-size: 1.8rem;\n            font-weight: 700;\n            color: #2d2d2d;\n            margin-bottom: 10px;\n            letter-spacing: 0.5px;\n        }\n\n        h1 {\n            font-size: 1.8rem;\n            margin-bottom: 15px;\n            font-weight: 600;\n            color: #2d2d2d;\n        }\n\n        h1.confirm {\n            color: #28a745;\n        }\n\n        h1.cancel {\n            color: #dc3545;\n        }\n\n        .message {\n            font-size: 1rem;\n            opacity: 0.8;\n            margin-bottom: 30px;\n            line-height: 1.5;\n            color: #3a3a3a;\n        }\n\n        .status {\n            background: rgba(255, 255, 255, 0.3);\n            border-radius: 15px;\n            padding: 15px 25px;\n            margin: 20px 0;\n            backdrop-filter: blur(5px);\n            border: 1px solid rgba(255, 255, 255, 0.2);\n        }\n\n        .status.confirm {\n            background: rgba(40, 167, 69, 0.1);\n            border-color: rgba(40, 167, 69, 0.3);\n        }\n\n        .status.cancel {\n            background: rgba(220, 53, 69, 0.1);\n            border-color: rgba(220, 53, 69, 0.3);\n        }\n\n        .close-btn {\n            background: #4a4a4a;\n            border: 2px solid #4a4a4a;\n            color: white;\n            padding: 12px 30px;\n            border-radius: 10px;\n            font-size: 1rem;\n            font-weight: 600;\n            cursor: pointer;\n            transition: all 0.3s ease;\n            font-family: inherit;\n            box-shadow: 0 4px 15px rgba(0, 0, 0, 0.2);\n        }\n\n        .close-btn:hover {\n            transform: translateY(-2px);\n            box-shadow: 0 6px 20px rgba(0, 0, 0, 0.3);\n            background: #3a3a3a;\n        }\n\n        .admin-badge {\n            background: rgba(74, 74, 74, 0.1);\n            border: 1px solid rgba(74, 74, 74, 0.2);\n            border-radius: 10px;\n            padding: 8px 16px;\n            font-size: 0.85rem;\n            color: #4a4a4a;\n            margin-top: 20px;\n            display: inline-block;\n            backdrop-filter: blur(5px);\n        }\n\n        .auto-close {\n            font-size: 0.9rem;\n            color: #666;\n            margin-top: 15px;\n            font-style: italic;\n        }\n    </style>\n</head>\n<body>\n    <div class=\"container\">\n        <div class=\"checkmark {{$node['액션 파싱'].json.action === 'confirm' ? 'confirm' : 'cancel'}}\">\n            {{$node['액션 파싱'].json.action === 'confirm' ? '✅' : '❌'}}\n        </div>\n        \n        <div class=\"logo\">🍽️ Bookmakgol</div>\n        \n        <h1 class=\"{{$node['액션 파싱'].json.action === 'confirm' ? 'confirm' : 'cancel'}}\">\n            {{$node['액션 파싱'].json.action === 'confirm' ? 'การจองได้รับการยืนยัน!' : 'การจองถูกยกเลิกแล้ว!'}}\n        </h1>\n        \n        <div class=\"message\">\n            {{$node['액션 파싱'].json.action === 'confirm' ? \n                'การจองถูกยืนยันเรียบร้อยแล้ว<br>อีเมลแจ้งเตือนถูกส่งไปยังลูกค้าแล้ว' : \n                'การจองถูกยกเลิกเรียบร้อยแล้ว<br>อีเมลแจ้งการยกเลิกถูกส่งไปยังลูกค้าแล้ว'}}\n        </div>\n        \n        <div class=\"status {{$node['액션 파싱'].json.action === 'confirm' ? 'confirm' : 'cancel'}}\">\n            <strong>สถานะ:</strong> {{$node['액션 파싱'].json.action === 'confirm' ? 'ยืนยันสำเร็จ' : 'ยกเลิกสำเร็จ'}}<br>\n            <strong>การแจ้งเตือน:</strong> ส่งอีเมลแล้ว<br>\n            <strong>เวลา:</strong> {{new Date().toLocaleString('th-TH', {timeZone: 'Asia/Bangkok'})}}\n        </div>\n        \n        <button class=\"close-btn\" onclick=\"window.close()\">ปิดหน้าต่าง</button>\n        \n        <div class=\"admin-badge\">Admin System</div>\n        \n        <div class=\"auto-close\">หน้าต่างจะปิดอัตโนมัติใน 2 วินาที...</div>\n    </div>\n    \n    <script>\n        setTimeout(() => {\n            window.close();\n        }, 2000);\n    </script>\n</body>\n</html>",
+        "options": {}
+      },
+      "id": "f7b7194f-aeee-4569-9000-d57f66af4050",
+      "name": "성공 응답1",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        1808,
+        1168
+      ]
+    },
+    {
+      "parameters": {
+        "path": "check-availability",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "fa8c3c18-5e6d-49db-b850-c125e6b3392c",
+      "name": "Webhook - Check Availability",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 1,
+      "position": [
+        -608,
+        1632
+      ],
+      "webhookId": "check-availability"
+    },
+    {
+      "parameters": {
+        "functionCode": "// 🎯 입력값 파싱 및 검증\nconst queryParams = $input.item.json.query;\n\nconst date = queryParams.date;\nconst branch = queryParams.branch;\nconst room = queryParams.room;\n\n// 검증\nif (!date || !branch || !room) {\n  return {\n    json: {\n      error: 'Missing required parameters: date, branch, room',\n      blockedSlots: []\n    }\n  };\n}\n\n// Room이 아니면 빈 배열 반환 (Table은 중복 체크 안 함)\nif (!room.includes('Room')) {\n  return {\n    json: {\n      date,\n      branch,\n      room,\n      bookedTimes: [],\n      blockedSlots: [],\n      message: 'Table reservations do not require time blocking'\n    }\n  };\n}\n\n// Notion 쿼리용 데이터 반환\nreturn {\n  json: {\n    date,\n    branch,\n    room,\n    // Notion에서 검색할 날짜 범위 (해당 날짜 전체)\n    dateStart: `${date}T00:00:00+07:00`,\n    dateEnd: `${date}T23:59:59+07:00`\n  }\n};"
+      },
+      "id": "e5ece04b-ac92-4c94-9b91-14ed2a46459b",
+      "name": "Parse Query Parameters",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        -400,
+        1632
+      ]
+    },
+    {
+      "parameters": {
+        "resource": "databasePage",
+        "operation": "getAll",
+        "databaseId": {
+          "__rl": true,
+          "value": "284a2fb1-c15d-81a1-9d93-d4f47300f2e3",
+          "mode": "list",
+          "cachedResultName": "Bookmakgol Reservation Management",
+          "cachedResultUrl": "https://www.notion.so/284a2fb1c15d81a19d93d4f47300f2e3"
+        },
+        "returnAll": true,
+        "filterType": "manual",
+        "matchType": "allFilters",
+        "filters": {
+          "conditions": [
+            {
+              "key": "Reservation DateTime|date",
+              "condition": "on_or_after",
+              "date": "={{ $json.dateStart }}"
+            },
+            {
+              "key": "Reservation DateTime|date",
+              "condition": "on_or_before",
+              "date": "={{ $json.dateEnd }}"
+            },
+            {
+              "key": "Branch|select",
+              "condition": "equals",
+              "selectValue": "={{ $json.branch }}"
+            },
+            {
+              "key": "Room Number|select",
+              "condition": "equals",
+              "selectValue": "={{ $json.room }}"
+            },
+            {
+              "key": "Status|select",
+              "condition": "does_not_equal",
+              "selectValue": "=Cancelled"
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "97a40e0c-d869-4777-a9d7-63877c7527ae",
+      "name": "Query Notion - Existing Reservations",
+      "type": "n8n-nodes-base.notion",
+      "typeVersion": 2,
+      "position": [
+        -208,
+        1632
+      ],
+      "credentials": {
+        "notionApi": {
+          "id": "AU29qZb94H2pm2jL",
+          "name": "Notion account"
+        }
+      }
+    },
+    {
+      "parameters": {
+        "functionCode": "// 🎯 예약된 시간을 3시간 블록으로 계산\nconst items = $input.all();\nconst bookedTimes = [];\nconst blockedSlots = new Set();\n\n// 예약된 시간 추출\nfor (const item of items) {\n  const properties = item.json.properties;\n  \n  // Time 필드에서 시간 추출 (예: \"18:00\")\n  const timeValue = properties.Time?.rich_text?.[0]?.plain_text || \n                    properties.Time?.title?.[0]?.plain_text ||\n                    properties['Reservation DateTime']?.date?.start?.split('T')[1]?.substring(0, 5);\n  \n  if (timeValue) {\n    bookedTimes.push(timeValue);\n    \n    // 3시간 블록 계산 (시작 30분 전부터 종료 30분 후까지)\n    const [hour, minute] = timeValue.split(':').map(Number);\n    const startMinutes = hour * 60 + minute;\n    \n    // 시작 30분 전부터 종료 30분 후까지 블록 (총 4시간)\n    // 예: 18:00 예약 → 17:30, 18:00, 18:30, 19:00, 19:30, 20:00, 20:30, 21:00 블록\n    for (let offset = -30; offset <= 210; offset += 30) {\n      const totalMinutes = startMinutes + offset;\n      const blockHour = Math.floor(totalMinutes / 60);\n      const blockMinute = totalMinutes % 60;\n      \n      if (blockHour >= 0 && blockHour < 24) {\n        const timeSlot = `${blockHour.toString().padStart(2, '0')}:${blockMinute.toString().padStart(2, '0')}`;\n        blockedSlots.add(timeSlot);\n      }\n    }\n  }\n}\n\n// Set을 Array로 변환하고 정렬\nconst blockedArray = Array.from(blockedSlots).sort();\n\nreturn {\n  json: {\n    date: $('Parse Query Parameters').item.json.date,\n    branch: $('Parse Query Parameters').item.json.branch,\n    room: $('Parse Query Parameters').item.json.room,\n    bookedTimes: bookedTimes.sort(),\n    blockedSlots: blockedArray,\n    totalReservations: bookedTimes.length,\n    totalBlockedSlots: blockedArray.length\n  }\n};"
+      },
+      "id": "e0e4b515-b89f-4371-8a3c-8840c5a4017c",
+      "name": "Calculate Blocked Time Slots",
+      "type": "n8n-nodes-base.function",
+      "typeVersion": 1,
+      "position": [
+        0,
+        1632
+      ]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={{ $json }}",
+        "options": {
+          "responseHeaders": {
+            "entries": [
+              {
+                "name": "Content-Type",
+                "value": "application/json"
+              },
+              {
+                "name": "Access-Control-Allow-Origin",
+                "value": "*"
+              },
+              {
+                "name": "Access-Control-Allow-Methods",
+                "value": "GET, OPTIONS"
+              }
+            ]
+          }
+        }
+      },
+      "id": "34002384-61c2-45b2-ac3a-8925d4bdbe55",
+      "name": "Respond to Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1,
+      "position": [
+        192,
+        1632
+      ]
+    }
+  ],
+  "connections": {
+    "Webhook": {
+      "main": [
+        [
+          {
+            "node": "데이터 검증",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "데이터 검증",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "데이터 검증": {
+      "main": [
+        [
+          {
+            "node": "검증 오류 체크",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "검증 오류 체크": {
+      "main": [
+        [
+          {
+            "node": "오류 응답",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "중복 예약 체크",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "중복 예약 체크": {
+      "main": [
+        [
+          {
+            "node": "중복 검사 로직",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "중복 검사 로직": {
+      "main": [
+        [
+          {
+            "node": "중복 예약 확인",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "중복 예약 확인": {
+      "main": [
+        [
+          {
+            "node": "중복 오류 응답",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "예약번호 생성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "예약번호 생성": {
+      "main": [
+        [
+          {
+            "node": "Notion에 저장",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Notion에 저장": {
+      "main": [
+        [
+          {
+            "node": "관리자 이메일 생성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "관리자 이메일 생성": {
+      "main": [
+        [
+          {
+            "node": "관리자 이메일 발송",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "관리자 이메일 발송": {
+      "main": [
+        [
+          {
+            "node": "성공 응답",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "스케줄 트리거": {
+      "main": [
+        [
+          {
+            "node": "내일 날짜 계산",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "내일 날짜 계산": {
+      "main": [
+        [
+          {
+            "node": "내일 예약 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "내일 예약 조회": {
+      "main": [
+        [
+          {
+            "node": "예약 존재 확인",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "예약 존재 확인": {
+      "main": [
+        [],
+        [
+          {
+            "node": "리마인더 데이터 준비",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "리마인더 데이터 준비": {
+      "main": [
+        [
+          {
+            "node": "리마인더 템플릿 생성",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "리마인더 템플릿 생성": {
+      "main": [
+        [
+          {
+            "node": "리마인더 이메일 발송",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "리마인더 이메일 발송": {
+      "main": [
+        [
+          {
+            "node": "리마인더 발송 표시",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "리마인더 발송 표시": {
+      "main": [
+        [
+          {
+            "node": "처리 완료 로그",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "관리자 버튼 Webhook": {
+      "main": [
+        [
+          {
+            "node": "액션 파싱",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "액션 파싱": {
+      "main": [
+        [
+          {
+            "node": "오류 체크",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "오류 체크": {
+      "main": [
+        [
+          {
+            "node": "오류 응답1",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "예약 조회",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "예약 조회": {
+      "main": [
+        [
+          {
+            "node": "예약 존재 확인1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "액션 분기": {
+      "main": [
+        [
+          {
+            "node": "예약 확정 업데이트",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "예약 취소 업데이트",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "예약 확정 업데이트": {
+      "main": [
+        [
+          {
+            "node": "이메일 데이터 준비",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "예약 취소 업데이트": {
+      "main": [
+        [
+          {
+            "node": "이메일 데이터 준비",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "이메일 데이터 준비": {
+      "main": [
+        [
+          {
+            "node": "이메일 분기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "이메일 분기": {
+      "main": [
+        [
+          {
+            "node": "확정 이메일 템플릿",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "취소 이메일 템플릿",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "확정 이메일 템플릿": {
+      "main": [
+        [
+          {
+            "node": "고객 이메일 발송",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "취소 이메일 템플릿": {
+      "main": [
+        [
+          {
+            "node": "고객 이메일 발송",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "고객 이메일 발송": {
+      "main": [
+        [
+          {
+            "node": "성공 응답1",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "예약 존재 확인1": {
+      "main": [
+        [
+          {
+            "node": "예약 없음 응답",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "액션 분기",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Webhook - Check Availability": {
+      "main": [
+        [
+          {
+            "node": "Parse Query Parameters",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Parse Query Parameters": {
+      "main": [
+        [
+          {
+            "node": "Query Notion - Existing Reservations",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Query Notion - Existing Reservations": {
+      "main": [
+        [
+          {
+            "node": "Calculate Blocked Time Slots",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Calculate Blocked Time Slots": {
+      "main": [
+        [
+          {
+            "node": "Respond to Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  },
+  "settings": {
+    "executionOrder": "v1"
+  },
+  "staticData": {
+    "node:스케줄 트리거": {
+      "recurrenceRules": []
+    }
+  },
+  "meta": {
+    "templateCredsSetupCompleted": true
+  },
+  "pinData": {},
+  "versionId": "ab58e734-0658-4aa5-92b9-b65bf0eaf300",
+  "triggerCount": 4,
+  "shared": [
+    {
+      "updatedAt": "2025-11-03T08:26:19.724Z",
+      "createdAt": "2025-11-03T08:26:19.724Z",
+      "role": "workflow:owner",
+      "workflowId": "dDiWSm8cQZaADkIs",
+      "projectId": "VhyLtdFs59nOMmgs"
+    }
+  ],
+  "tags": [
+    {
+      "updatedAt": "2025-11-03T08:26:17.610Z",
+      "createdAt": "2025-11-03T08:26:17.610Z",
+      "id": "axqP97d5KH0Xmtnv",
+      "name": "bookmagol"
+    },
+    {
+      "updatedAt": "2025-11-03T08:26:17.571Z",
+      "createdAt": "2025-11-03T08:26:17.571Z",
+      "id": "nhXuS9gJhshUWFiF",
+      "name": "etc"
+    }
+  ]
+}

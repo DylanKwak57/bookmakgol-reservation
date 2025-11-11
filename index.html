@@ -415,6 +415,78 @@
         .hidden {
             display: none !important;
         }
+
+        /* 예약금 섹션 스타일 */
+        .deposit-info {
+            background: linear-gradient(135deg, #fff9e6 0%, #ffe6cc 100%);
+            border: 2px solid #ffb84d;
+            border-radius: 15px;
+            padding: 20px;
+            margin-bottom: 20px;
+        }
+
+        .deposit-amount {
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #d9534f;
+            text-align: center;
+            margin-bottom: 15px;
+            padding: 10px;
+            background: white;
+            border-radius: 10px;
+        }
+
+        .bank-info {
+            background: white;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 15px;
+        }
+
+        .bank-info h4 {
+            margin-bottom: 10px;
+            color: #2d2d2d;
+        }
+
+        .bank-info ul {
+            list-style: none;
+            padding: 0;
+        }
+
+        .bank-info li {
+            padding: 5px 0;
+            border-bottom: 1px solid #f0f0f0;
+        }
+
+        .bank-info li:last-child {
+            border-bottom: none;
+        }
+
+        .usage-time-info {
+            background: #e8f5e9;
+            padding: 10px;
+            border-radius: 8px;
+            text-align: center;
+        }
+
+        input[type="file"] {
+            padding: 10px;
+            border: 2px dashed #d0d0d0;
+            background: rgba(255, 255, 255, 0.9);
+            cursor: pointer;
+        }
+
+        input[type="file"]:hover {
+            border-color: #4a4a4a;
+            background: white;
+        }
+
+        small {
+            display: block;
+            margin-top: 5px;
+            color: #666;
+            font-size: 0.85rem;
+        }
     </style>
 </head>
 <body>
@@ -556,6 +628,48 @@
                     </div>
                 </div>
 
+                <!-- Step 6: 예약금 영수증 (Room 예약 시만 표시) -->
+                <div class="form-section" id="depositSection" style="display: none;">
+                    <h3 class="section-title">
+                        <span class="section-number">6</span>
+                        <span id="step6-title">예약금 입금 영수증</span>
+                    </h3>
+                    
+                    <div class="deposit-info">
+                        <div id="deposit-amount-display" class="deposit-amount"></div>
+                        
+                        <div class="bank-info">
+                            <h4 id="bank-info-title">🏦 입금 계좌</h4>
+                            <ul id="bank-details">
+                                <li><strong id="bank-name-label">은행:</strong> Kasikorn Bank</li>
+                                <li><strong id="bank-account-label">계좌번호:</strong> 047-3-53876-8</li>
+                                <li><strong id="bank-holder-label">예금주:</strong> Bookmagol (Thailand)<br>
+                                    <span style="font-size: 0.9em;">บุคมาโกล ไทยแลนด์ จำกัด</span>
+                                </li>
+                            </ul>
+                        </div>
+                        
+                        <div class="usage-time-info">
+                            <p id="usage-time-text">⏰ <strong>사용 시간:</strong> 3시간</p>
+                        </div>
+                    </div>
+                    
+                    <div class="form-group">
+                        <label for="receipt" id="receipt-label">
+                            입금 영수증 업로드 <span class="required">*</span>
+                        </label>
+                        <input 
+                            type="file" 
+                            id="receipt" 
+                            name="receipt" 
+                            accept="image/*,.pdf"
+                        >
+                        <small id="receipt-help">
+                            입금 후 영수증 사진을 업로드해주세요. (JPG, PNG, PDF, 최대 5MB)
+                        </small>
+                    </div>
+                </div>
+
                 <button type="submit" class="submit-btn" id="submitBtn">예약하기</button>
             </form>
 
@@ -586,6 +700,7 @@
                 step3Title: '공간 선택',
                 step4Title: '인원 수',
                 step5Title: '연락처 정보',
+                step6Title: '예약금 입금 영수증',
                 ekamaiName: '에까마이 지점',
                 ekamaiInfo: 'BTS 에까마이역 4번 출구',
                 phromName: '프롬퐁 지점',
@@ -605,6 +720,13 @@
                 phoneLabel: '전화번호',
                 emailLabel: '이메일',
                 specialLabel: '특별 요청',
+                bankInfoTitle: '🏦 입금 계좌',
+                bankNameLabel: '은행',
+                bankAccountLabel: '계좌번호',
+                bankHolderLabel: '예금주',
+                usageTimeText: '사용 시간: 3시간',
+                receiptLabel: '입금 영수증 업로드',
+                receiptHelp: '입금 후 영수증 사진을 업로드해주세요. (JPG, PNG, PDF, 최대 5MB)',
                 submitBtn: '예약하기',
                 loadingText: '예약을 처리 중입니다...',
                 successText: '예약이 성공적으로 접수되었습니다!',
@@ -619,6 +741,7 @@
                 step3Title: 'เลือกพื้นที่',
                 step4Title: 'จำนวนคน',
                 step5Title: 'ข้อมูลติดต่อ',
+                step6Title: 'สลิปโอนเงินค่ามัดจำ',
                 ekamaiName: 'สาขาเอกมัย',
                 ekamaiInfo: 'BTS เอกมัย ทางออก 4',
                 phromName: 'สาขาพร้อมพงษ์',
@@ -638,6 +761,13 @@
                 phoneLabel: 'เบอร์โทร',
                 emailLabel: 'อีเมล',
                 specialLabel: 'ความต้องการพิเศษ',
+                bankInfoTitle: '🏦 บัญชีธนาคาร',
+                bankNameLabel: 'ธนาคาร',
+                bankAccountLabel: 'เลขที่บัญชี',
+                bankHolderLabel: 'ชื่อบัญชี',
+                usageTimeText: 'ระยะเวลาใช้งาน: 3 ชั่วโมง',
+                receiptLabel: 'อัพโหลดสลิปโอนเงิน',
+                receiptHelp: 'กรุณาอัพโหลดสลิปโอนเงิน (JPG, PNG, PDF, สูงสุด 5MB)',
                 submitBtn: 'จองโต๊ะ',
                 loadingText: 'กำลังดำเนินการจอง...',
                 successText: 'การจองสำเร็จแล้ว!',
@@ -652,6 +782,7 @@
                 step3Title: 'Select Space',
                 step4Title: 'Party Size',
                 step5Title: 'Contact Information',
+                step6Title: 'Payment Receipt',
                 ekamaiName: 'Ekamai Branch',
                 ekamaiInfo: 'BTS Ekamai Exit 4',
                 phromName: 'Phrom Phong Branch',
@@ -671,6 +802,13 @@
                 phoneLabel: 'Phone',
                 emailLabel: 'Email',
                 specialLabel: 'Special Requests',
+                bankInfoTitle: '🏦 Bank Account',
+                bankNameLabel: 'Bank',
+                bankAccountLabel: 'Account Number',
+                bankHolderLabel: 'Account Holder',
+                usageTimeText: 'Duration: 3 hours',
+                receiptLabel: 'Upload Payment Receipt',
+                receiptHelp: 'Please upload payment receipt (JPG, PNG, PDF, max 5MB)',
                 submitBtn: 'Make Reservation',
                 loadingText: 'Processing reservation...',
                 successText: 'Reservation submitted successfully!',
@@ -730,21 +868,48 @@
                     if (selectedSpace === '룸') {
                         document.getElementById('roomDetails').classList.add('show');
                         document.getElementById('floorDetails').classList.remove('show');
+                        // 예약금 섹션은 룸 선택 시에만 표시 (룸 번호 선택 후)
                     } else {
                         // 홀 선택 시 층 선택 없이 바로 완료
                         selectedDetail = 'General Table';
                         document.getElementById('floorDetails').classList.remove('show');
                         document.getElementById('roomDetails').classList.remove('show');
+                        // 예약금 섹션 숨김
+                        document.getElementById('depositSection').style.display = 'none';
+                        document.getElementById('receipt').removeAttribute('required');
                     }
                 });
             });
 
             // 룸 선택 이벤트
             document.querySelectorAll('[data-room]').forEach(card => {
-                card.addEventListener('click', function() {
+                card.addEventListener('click', async function() {
                     document.querySelectorAll('[data-room]').forEach(c => c.classList.remove('selected'));
                     this.classList.add('selected');
                     selectedDetail = this.dataset.room;
+                    
+                    // 예약금 섹션 표시
+                    const depositSection = document.getElementById('depositSection');
+                    depositSection.style.display = 'block';
+                    document.getElementById('receipt').setAttribute('required', 'required');
+                    
+                    // 예약금 금액 표시
+                    const amount = selectedDetail === '1번룸' ? '800' : '400';
+                    const depositDisplay = document.getElementById('deposit-amount-display');
+                    
+                    const amountText = {
+                        ko: `💰 예약금: ${amount} THB (입금 후 예약 가능)`,
+                        th: `💰 ค่ามัดจำ: ${amount} บาท (จองได้หลังชำระ)`,
+                        en: `💰 Deposit: ${amount} THB (Required before booking)`
+                    };
+                    
+                    depositDisplay.textContent = amountText[currentLang];
+                    
+                    // 예약 가능 시간 체크 (날짜 선택되어 있을 경우)
+                    const selectedDate = document.getElementById('date').value;
+                    if (selectedDate && selectedBranch) {
+                        await checkAndUpdateAvailability();
+                    }
                 });
             });
 
@@ -760,83 +925,51 @@
             });
 
             // 날짜 변경 시 시간 슬롯 업데이트
-            document.getElementById('date').addEventListener('change', function() {
-                generateTimeSlots();
+            document.getElementById('date').addEventListener('change', async function() {
+                await checkAndUpdateAvailability();
             });
 
             // 폼 제출 이벤트
             document.getElementById('reservationForm').addEventListener('submit', handleFormSubmit);
         });
 
-        function initializeForm() {
-            // 최소 날짜를 오늘로 동적 설정
-            const today = new Date().toISOString().split('T')[0];
-            document.getElementById('date').setAttribute('min', today);
-        }
-
-        function updateLanguage() {
-            const t = translations[currentLang];
+        // 예약 가능 시간 체크 및 업데이트
+        async function checkAndUpdateAvailability() {
+            const selectedDate = document.getElementById('date').value;
             
-            document.title = t.pageTitle;
-            document.getElementById('page-title').textContent = t.pageTitle;
-            document.getElementById('subtitle').textContent = t.subtitle;
+            if (!selectedDate || !selectedBranch || !selectedDetail) {
+                generateTimeSlots();
+                return;
+            }
             
-            document.getElementById('step1-title').textContent = t.step1Title;
-            document.getElementById('step2-title').textContent = t.step2Title;
-            document.getElementById('step3-title').textContent = t.step3Title;
-            document.getElementById('step4-title').textContent = t.step4Title;
-            document.getElementById('step5-title').textContent = t.step5Title;
+            // Room 예약만 체크 (Table은 체크 안 함)
+            if (selectedSpace !== '룸') {
+                generateTimeSlots();
+                return;
+            }
             
-            document.getElementById('ekamai-name').textContent = t.ekamaiName;
-            document.getElementById('ekamai-info').textContent = t.ekamaiInfo;
-            document.getElementById('phrom-name').textContent = t.phromName;
-            document.getElementById('phrom-info').textContent = t.phromInfo;
+            // Room Number 영어로 변환
+            const roomEn = selectedDetail === '1번룸' ? 'Room 1' : 
+                          selectedDetail === '2번룸' ? 'Room 2' : selectedDetail;
             
-            document.getElementById('date-label').innerHTML = t.dateLabel + ' <span class="required">' + t.required + '</span>';
-            document.getElementById('time-label').innerHTML = t.timeLabel + ' <span class="required">' + t.required + '</span>';
-            
-            document.getElementById('room-text').textContent = t.roomText;
-            document.getElementById('hall-text').textContent = t.hallText;
-            document.getElementById('room1-text').textContent = t.room1Text;
-            document.getElementById('room1-capacity').textContent = t.room1Capacity;
-            document.getElementById('room2-text').textContent = t.room2Text;
-            updateRoom2Capacity();
-            document.getElementById('floor1-text').textContent = t.floor1Text;
-            document.getElementById('floor2-text').textContent = t.floor2Text;
-            
-            document.getElementById('guests-label').innerHTML = t.guestsLabel + ' <span class="required">' + t.required + '</span>';
-            document.getElementById('name-label').innerHTML = t.nameLabel + ' <span class="required">' + t.required + '</span>';
-            document.getElementById('phone-label').innerHTML = t.phoneLabel + ' <span class="required">' + t.required + '</span>';
-            document.getElementById('email-label').innerHTML = t.emailLabel + ' <span class="required">' + t.required + '</span>';
-            document.getElementById('special-label').textContent = t.specialLabel;
-            
-            document.getElementById('submitBtn').textContent = t.submitBtn;
-            document.getElementById('loading-text').textContent = t.loadingText;
-            document.getElementById('success-text').textContent = t.successText;
-            document.getElementById('error-text').textContent = t.errorText;
-        }
-
-        function updateRoom2Capacity() {
-            if (selectedBranch && document.getElementById('room2-capacity')) {
-                const capacityByBranch = {
-                    'Ekamai': {
-                        ko: '최대 6명',
-                        th: 'สูงสุด 6 คน', 
-                        en: 'Max 6 guests'
-                    },
-                    'Phrom Phong': {
-                        ko: '최대 4명',
-                        th: 'สูงสุด 4 คน',
-                        en: 'Max 4 guests'
-                    }
-                };
+            try {
+                const response = await fetch(
+                    `https://dylan-automation.app.n8n.cloud/webhook/check-availability?` + 
+                    `date=${selectedDate}&branch=${selectedBranch}&room=${encodeURIComponent(roomEn)}`
+                );
                 
-                const capacity = capacityByBranch[selectedBranch][currentLang];
-                document.getElementById('room2-capacity').textContent = capacity;
+                const data = await response.json();
+                
+                // 예약된 시간 슬롯으로 업데이트
+                generateTimeSlots(data.blockedSlots || []);
+            } catch (error) {
+                console.error('Error checking availability:', error);
+                // 에러 시 기본 시간 슬롯 표시
+                generateTimeSlots();
             }
         }
 
-        function generateTimeSlots() {
+        function generateTimeSlots(blockedSlots = []) {
             const timeGrid = document.getElementById('timeGrid');
             timeGrid.innerHTML = '';
             
@@ -869,10 +1002,108 @@
             [...morningSlots, ...eveningSlots].forEach(time => {
                 const slot = document.createElement('div');
                 slot.className = 'time-slot';
-                slot.textContent = time;
+                
+                // 예약된 시간인지 체크
+                if (blockedSlots.includes(time)) {
+                    slot.classList.add('unavailable');
+                    slot.textContent = time + ' ❌';
+                    slot.title = '예약 불가 (이미 예약됨)';
+                } else {
+                    slot.textContent = time;
+                }
+                
                 slot.dataset.time = time;
                 timeGrid.appendChild(slot);
             });
+        }
+
+        function initializeForm() {
+            // 최소 날짜를 오늘로 동적 설정
+            const today = new Date().toISOString().split('T')[0];
+            document.getElementById('date').setAttribute('min', today);
+        }
+
+        function updateLanguage() {
+            const t = translations[currentLang];
+            
+            document.title = t.pageTitle;
+            document.getElementById('page-title').textContent = t.pageTitle;
+            document.getElementById('subtitle').textContent = t.subtitle;
+            
+            document.getElementById('step1-title').textContent = t.step1Title;
+            document.getElementById('step2-title').textContent = t.step2Title;
+            document.getElementById('step3-title').textContent = t.step3Title;
+            document.getElementById('step4-title').textContent = t.step4Title;
+            document.getElementById('step5-title').textContent = t.step5Title;
+            if (document.getElementById('step6-title')) {
+                document.getElementById('step6-title').textContent = t.step6Title;
+            }
+            
+            document.getElementById('ekamai-name').textContent = t.ekamaiName;
+            document.getElementById('ekamai-info').textContent = t.ekamaiInfo;
+            document.getElementById('phrom-name').textContent = t.phromName;
+            document.getElementById('phrom-info').textContent = t.phromInfo;
+            
+            document.getElementById('date-label').innerHTML = t.dateLabel + ' <span class="required">' + t.required + '</span>';
+            document.getElementById('time-label').innerHTML = t.timeLabel + ' <span class="required">' + t.required + '</span>';
+            
+            document.getElementById('room-text').textContent = t.roomText;
+            document.getElementById('hall-text').textContent = t.hallText;
+            document.getElementById('room1-text').textContent = t.room1Text;
+            document.getElementById('room1-capacity').textContent = t.room1Capacity;
+            document.getElementById('room2-text').textContent = t.room2Text;
+            updateRoom2Capacity();
+            document.getElementById('floor1-text').textContent = t.floor1Text;
+            document.getElementById('floor2-text').textContent = t.floor2Text;
+            
+            document.getElementById('guests-label').innerHTML = t.guestsLabel + ' <span class="required">' + t.required + '</span>';
+            document.getElementById('name-label').innerHTML = t.nameLabel + ' <span class="required">' + t.required + '</span>';
+            document.getElementById('phone-label').innerHTML = t.phoneLabel + ' <span class="required">' + t.required + '</span>';
+            document.getElementById('email-label').innerHTML = t.emailLabel + ' <span class="required">' + t.required + '</span>';
+            document.getElementById('special-label').textContent = t.specialLabel;
+            
+            // 예약금 관련 텍스트 업데이트
+            if (document.getElementById('bank-info-title')) {
+                document.getElementById('bank-info-title').textContent = t.bankInfoTitle;
+                document.getElementById('bank-name-label').textContent = t.bankNameLabel + ':';
+                document.getElementById('bank-account-label').textContent = t.bankAccountLabel + ':';
+                document.getElementById('bank-holder-label').textContent = t.bankHolderLabel + ':';
+                document.getElementById('usage-time-text').innerHTML = `⏰ <strong>${t.usageTimeText}</strong>`;
+                document.getElementById('receipt-label').innerHTML = t.receiptLabel + ' <span class="required">' + t.required + '</span>';
+                document.getElementById('receipt-help').textContent = t.receiptHelp;
+            }
+            
+            document.getElementById('submitBtn').textContent = t.submitBtn;
+            document.getElementById('loading-text').textContent = t.loadingText;
+            document.getElementById('success-text').textContent = t.successText;
+            document.getElementById('error-text').textContent = t.errorText;
+        }
+
+        function updateRoom2Capacity() {
+            if (selectedBranch && document.getElementById('room2-capacity')) {
+                const capacityByBranch = {
+                    'Ekamai': {
+                        ko: '최대 6명',
+                        th: 'สูงสุด 6 คน', 
+                        en: 'Max 6 guests'
+                    },
+                    'Phrom Phong': {
+                        ko: '최대 4명',
+                        th: 'สูงสุด 4 คน',
+                        en: 'Max 4 guests'
+                    }
+                };
+                
+                const capacity = capacityByBranch[selectedBranch][currentLang];
+                document.getElementById('room2-capacity').textContent = capacity;
+            }
+        }
+
+        // 종료 시간 계산 (3시간 후)
+        function calculateEndTime(startTime) {
+            const [hour, minute] = startTime.split(':').map(Number);
+            const endHour = (hour + 3) % 24;
+            return `${endHour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
         }
 
         async function handleFormSubmit(e) {

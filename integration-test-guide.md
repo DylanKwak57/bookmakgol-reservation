@@ -10,6 +10,9 @@
 
 ### 2. n8n 워크플로우 설정
 - [ ] 3개 워크플로우 JSON 파일을 n8n에 import
+  - workflow-1-reservation-intake.json (예약 접수)
+  - workflow-4-button-handler.json (관리자 버튼 처리)
+  - workflow-3-reminder-system.json (리마인더)
 - [ ] 각 워크플로우에서 다음 값들을 실제 값으로 교체:
   - `YOUR_NOTION_DATABASE_ID` → 실제 Notion 데이터베이스 ID
   - `RESTAURANT_ADMIN_EMAIL@example.com` → 실제 식당 관리자 이메일
@@ -77,12 +80,13 @@
 ### 시나리오 4: 예약 확정 테스트
 
 **테스트 절차:**
-1. 시나리오 1의 예약을 Notion에서 "확정" 상태로 변경
-2. 워크플로우 2가 자동 실행되는지 확인
+1. 시나리오 1의 예약으로 받은 관리자 이메일에서 "확정" 버튼 클릭
+2. 워크플로우 4가 자동 실행되는지 확인
 
 **예상 결과:**
 1. 고객(test.korean@example.com)에게 한국어 확정 이메일 발송
 2. 이메일 내용에 예약 정보, 지점 정보, 구글맵 링크 포함
+3. Notion에서 예약 상태가 "Confirmed"로 자동 업데이트
 
 ### 시나리오 5: 리마인더 테스트
 
