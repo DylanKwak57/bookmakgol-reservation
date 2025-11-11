@@ -1128,6 +1128,25 @@
                 return;
             }
             
+            // Room 예약 시 영수증 필수 검증
+            if (selectedSpace === '룸') {
+                const receiptFile = document.getElementById('receipt').files[0];
+                if (!receiptFile) {
+                    alert(currentLang === 'ko' ? '영수증을 업로드해주세요.' : 
+                          currentLang === 'th' ? 'กรุณาอัพโหลดสลิปโอนเงิน' : 
+                          'Please upload payment receipt.');
+                    return;
+                }
+                
+                // 파일 크기 체크 (5MB)
+                if (receiptFile.size > 5 * 1024 * 1024) {
+                    alert(currentLang === 'ko' ? '파일 크기는 5MB 이하여야 합니다.' : 
+                          currentLang === 'th' ? 'ขนาดไฟล์ต้องไม่เกิน 5MB' : 
+                          'File size must be under 5MB.');
+                    return;
+                }
+            }
+            
             // 홀 선택 시 층 선택 불필요 (자동으로 General Table 설정됨)
             
             if (!document.getElementById('selectedTime').value) {
@@ -1168,30 +1187,37 @@
                                  selectedDetail === '2nd Floor' ? '2nd Floor' :
                                  selectedDetail === 'General Table' ? 'General Table' : selectedDetail;
             
-            const formData = {
-                branch: selectedBranch || 'Ekamai',
-                date: document.getElementById('date').value,
-                time: document.getElementById('selectedTime').value || '18:00',
-                spaceType: spaceTypeEn || 'Room',
-                spaceDetail: spaceDetailEn || 'Room 1',
-                guests: parseInt(document.getElementById('guests').value),
-                name: document.getElementById('name').value,
-                phone: document.getElementById('phone').value,
-                email: document.getElementById('email').value,
-                specialRequest: document.getElementById('special-request').value,
-                language: currentLang
-            };
+            // FormData 생성 (파일 업로드용)
+            const formData = new FormData();
+            formData.append('branch', selectedBranch || 'Ekamai');
+            formData.append('date', document.getElementById('date').value);
+            formData.append('time', document.getElementById('selectedTime').value || '18:00');
+            formData.append('spaceType', spaceTypeEn || 'Room');
+            formData.append('spaceDetail', spaceDetailEn || 'Room 1');
+            formData.append('guests', document.getElementById('guests').value);
+            formData.append('name', document.getElementById('name').value);
+            formData.append('phone', document.getElementById('phone').value);
+            formData.append('email', document.getElementById('email').value);
+            formData.append('specialRequest', document.getElementById('special-request').value);
+            formData.append('language', currentLang);
             
-            console.log('Form Data:', formData);
+            // Room 예약 시 영수증 파일 및 예약금 추가
+            if (selectedSpace === '룸') {
+                const receiptFile = document.getElementById('receipt').files[0];
+                formData.append('receipt', receiptFile);
+                
+                const depositAmount = selectedDetail === '1번룸' ? '800' : '400';
+                formData.append('depositAmount', depositAmount);
+            }
+            
+            console.log('Form Data prepared with', selectedSpace === '룸' ? 'file upload' : 'no file');
             
             try {
                 // n8n webhook URL 연결
                 const response = await fetch('https://dylan-automation.app.n8n.cloud/webhook/bookmakgol-reservation', {
                     method: 'POST',
-                    headers: {
-                        'Content-Type': 'application/json',
-                    },
-                    body: JSON.stringify(formData)
+                    // FormData는 자동으로 Content-Type 설정 (multipart/form-data)
+                    body: formData
                 });
                 
                 const result = await response.json();
@@ -1265,15 +1291,14 @@
 • 날짜: ${formattedDate}
 • 시간: ${selectedTimeValue}
 • 공간: ${spaceName}
-• 인원: ${guestCount}명
+• 인원: ${guestCount}명${spaceTypeEn === 'Room' ? '\n• 예약금: ' + (spaceDetailEn === 'Room 1' ? '800 THB' : '400 THB') + ' (입금 완료 ✅)' : ''}
 
 📞 지점 연락처
 • 전화번호: ${branchContact.phone}
 • 주소: ${branchContact.address}
 
-📧 다음 단계
-관리자가 예약을 확인한 후 확정 이메일을 보내드립니다.
-확정까지 보통 1-2시간 소요됩니다.
+📧 다음 단계${spaceTypeEn === 'Room' ? '\n입금이 확인되어 예약이 확정되었습니다!' : '\n관리자가 예약을 확인한 후 확정 이메일을 보내드립니다.'}
+${spaceTypeEn === 'Room' ? '' : '확정까지 보통 1-2시간 소요됩니다.'}
 
 문의사항이 있으시면 위 전화번호로 연락주세요.`,
                         th: `การจองของคุณ${customerName} สำเร็จแล้ว! 🎉
@@ -1284,15 +1309,14 @@
 • วันที่: ${formattedDate}
 • เวลา: ${selectedTimeValue}
 • พื้นที่: ${spaceName}
-• จำนวน: ${guestCount} ท่าน
+• จำนวน: ${guestCount} ท่าน${spaceTypeEn === 'Room' ? '\n• ค่ามัดจำ: ' + (spaceDetailEn === 'Room 1' ? '800 บาท' : '400 บาท') + ' (ชำระแล้ว ✅)' : ''}
 
 📞 ข้อมูลติดต่อสาขา
 • เบอร์โทร: ${branchContact.phone}
 • ที่อยู่: ${branchContact.address}
 
-📧 ขั้นตอนถัดไป
-ผู้จัดการจะตรวจสอบและส่งอีเมลยืนยันให้คุณ
-ใช้เวลาประมาณ 1-2 ชั่วโมง
+📧 ขั้นตอนถัดไป${spaceTypeEn === 'Room' ? '\nได้รับยืนยันการชำระแล้ว การจองสำเร็จ!' : '\nผู้จัดการจะตรวจสอบและส่งอีเมลยืนยันให้คุณ'}
+${spaceTypeEn === 'Room' ? '' : 'ใช้เวลาประมาณ 1-2 ชั่วโมง'}
 
 หากมีข้อสงสัย กรุณาโทรสอบถามเบอร์ข้างบน`,
                         en: `${customerName}'s reservation submitted successfully! 🎉
@@ -1303,15 +1327,14 @@
 • Date: ${formattedDate}
 • Time: ${selectedTimeValue}
 • Space: ${spaceName}
-• Guests: ${guestCount}
+• Guests: ${guestCount}${spaceTypeEn === 'Room' ? '\n• Deposit: ' + (spaceDetailEn === 'Room 1' ? '800 THB' : '400 THB') + ' (Paid ✅)' : ''}
 
 📞 Branch Contact
 • Phone: ${branchContact.phone}
 • Address: ${branchContact.address}
 
-📧 Next Steps
-Manager will review and send confirmation email.
-Usually takes 1-2 hours.
+📧 Next Steps${spaceTypeEn === 'Room' ? '\nPayment confirmed! Your reservation is confirmed.' : '\nManager will review and send confirmation email.'}
+${spaceTypeEn === 'Room' ? '' : 'Usually takes 1-2 hours.'}
 
 For inquiries, please call the number above.`
                     };
