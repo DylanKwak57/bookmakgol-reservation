@@ -980,6 +980,20 @@
         let selectedSpace = '';
         let selectedDetail = '';
 
+        // 예약금 금액 계산 함수 (지점별)
+        function getDepositAmount(branch, room) {
+            // 룸 번호 정규화 (다국어 지원)
+            const isRoom1 = room === '1번룸' || room === 'Room 1' || room === 'ห้องที่ 1' || room.includes('1');
+            const isRoom2 = room === '2번룸' || room === 'Room 2' || room === 'ห้องที่ 2' || room.includes('2');
+            
+            if (branch === 'Ekamai') {
+                return isRoom1 ? '600' : isRoom2 ? '300' : '600';
+            } else {
+                // Phrom Phong
+                return isRoom1 ? '800' : isRoom2 ? '400' : '800';
+            }
+        }
+
         // 사용 가능 시간 계산 함수
         function calculateAvailableHours(startTime, nextBookingTime = null) {
             const [startHour, startMinute] = startTime.split(':').map(Number);
@@ -1062,10 +1076,14 @@
                     warningText = warningMessages[currentLang];
                 }
                 
+                // 예약금 금액 계산
+                const roomEn = room.includes('1') ? 'Room 1' : 'Room 2';
+                const depositAmount = getDepositAmount(selectedBranch, roomEn);
+                
                 const messages = {
-                    ko: `${date}\n${timeRangeText}\n${room}${warningText}\n\n💰 예약금: ${room.includes('1') ? '800' : '400'} THB\n${availableInfo.isLimited ? '\n계속 진행하시겠습니까?' : '\n아래로 스크롤하여 예약을 완료해주세요.'}`,
-                    th: `${date}\n${timeRangeText}\n${room}${warningText}\n\n💰 ค่ามัดจำ: ${room.includes('1') ? '800' : '400'} บาท\n${availableInfo.isLimited ? '\nต้องการดำเนินการต่อหรือไม่?' : '\nเลื่อนลงเพื่อดำเนินการจองต่อ'}`,
-                    en: `${date}\n${timeRangeText}\n${room}${warningText}\n\n💰 Deposit: ${room.includes('1') ? '800' : '400'} THB\n${availableInfo.isLimited ? '\nDo you want to continue?' : '\nScroll down to complete your reservation.'}`
+                    ko: `${date}\n${timeRangeText}\n${room}${warningText}\n\n💰 예약금: ${depositAmount} THB\n${availableInfo.isLimited ? '\n계속 진행하시겠습니까?' : '\n아래로 스크롤하여 예약을 완료해주세요.'}`,
+                    th: `${date}\n${timeRangeText}\n${room}${warningText}\n\n💰 ค่ามัดจำ: ${depositAmount} บาท\n${availableInfo.isLimited ? '\nต้องการดำเนินการต่อหรือไม่?' : '\nเลื่อนลงเพื่อดำเนินการจองต่อ'}`,
+                    en: `${date}\n${timeRangeText}\n${room}${warningText}\n\n💰 Deposit: ${depositAmount} THB\n${availableInfo.isLimited ? '\nDo you want to continue?' : '\nScroll down to complete your reservation.'}`
                 };
                 
                 title.textContent = titles[currentLang];
@@ -1447,8 +1465,8 @@
                     depositSection.style.display = 'block';
                     document.getElementById('receipt').setAttribute('required', 'required');
                     
-                    // 예약금 금액 표시
-                    const amount = selectedDetail === '1번룸' ? '800' : '400';
+                    // 예약금 금액 표시 (지점별)
+                    const amount = getDepositAmount(selectedBranch, selectedDetail);
                     const depositDisplay = document.getElementById('deposit-amount-display');
                     
                     const amountText = {
@@ -1773,7 +1791,7 @@
             // Room 예약 시 영수증 파일을 Base64로 변환
             if (selectedSpace === '룸') {
                 const receiptFile = document.getElementById('receipt').files[0];
-                const depositAmount = selectedDetail === '1번룸' ? '800' : '400';
+                const depositAmount = getDepositAmount(selectedBranch, selectedDetail);
                 reservationData.depositAmount = depositAmount;
                 
                 // FileReader로 Base64 변환
@@ -1899,6 +1917,14 @@
                         en: dateObj.toLocaleDateString('en-US', {year: 'numeric', month: 'long', day: 'numeric', weekday: 'long'})
                     }[currentLang];
                     
+                    // 예약금 금액 계산 (지점별)
+                    const depositAmount = spaceTypeEn === 'Room' ? getDepositAmount(branchFromData, spaceDetailEn) : null;
+                    const depositText = spaceTypeEn === 'Room' 
+                        ? (currentLang === 'ko' ? `\n• 예약금: ${depositAmount} THB (입금 완료 ✅)`
+                           : currentLang === 'th' ? `\n• ค่ามัดจำ: ${depositAmount} บาท (ชำระแล้ว ✅)`
+                           : `\n• Deposit: ${depositAmount} THB (Paid ✅)`)
+                        : '';
+                    
                     const successMessages = {
                         ko: `${customerName}님의 예약이 성공적으로 접수되었습니다! 🎉
 
@@ -1908,7 +1934,7 @@
 • 날짜: ${formattedDate}
 • 시간: ${selectedTimeValue}
 • 공간: ${spaceName}
-• 인원: ${guestCount}명${spaceTypeEn === 'Room' ? '\n• 예약금: ' + (spaceDetailEn === 'Room 1' ? '800 THB' : '400 THB') + ' (입금 완료 ✅)' : ''}
+• 인원: ${guestCount}명${depositText}
 
 📞 지점 연락처
 • 전화번호: ${branchContact.phone}
@@ -1926,7 +1952,7 @@
 • วันที่: ${formattedDate}
 • เวลา: ${selectedTimeValue}
 • พื้นที่: ${spaceName}
-• จำนวน: ${guestCount} ท่าน${spaceTypeEn === 'Room' ? '\n• ค่ามัดจำ: ' + (spaceDetailEn === 'Room 1' ? '800 บาท' : '400 บาท') + ' (ชำระแล้ว ✅)' : ''}
+• จำนวน: ${guestCount} ท่าน${depositText}
 
 📞 ข้อมูลติดต่อสาขา
 • เบอร์โทร: ${branchContact.phone}
@@ -1944,7 +1970,7 @@
 • Date: ${formattedDate}
 • Time: ${selectedTimeValue}
 • Space: ${spaceName}
-• Guests: ${guestCount}${spaceTypeEn === 'Room' ? '\n• Deposit: ' + (spaceDetailEn === 'Room 1' ? '800 THB' : '400 THB') + ' (Paid ✅)' : ''}
+• Guests: ${guestCount}${depositText}
 
 📞 Branch Contact
 • Phone: ${branchContact.phone}
