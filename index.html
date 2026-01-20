@@ -1254,6 +1254,7 @@
                     }
                     
                     document.getElementById('spaceOptions').classList.add('show');
+                    updateRoom1Capacity();
                     updateRoom2Capacity();
                 });
             });
@@ -1640,7 +1641,7 @@
             document.getElementById('room-text').textContent = t.roomText;
             document.getElementById('hall-text').textContent = t.hallText;
             document.getElementById('room1-text').textContent = t.room1Text;
-            document.getElementById('room1-capacity').textContent = t.room1Capacity;
+            updateRoom1Capacity();
             document.getElementById('room2-text').textContent = t.room2Text;
             updateRoom2Capacity();
             document.getElementById('floor1-text').textContent = t.floor1Text;
@@ -1667,6 +1668,26 @@
             document.getElementById('loading-text').textContent = t.loadingText;
             document.getElementById('success-text').textContent = t.successText;
             document.getElementById('error-text').textContent = t.errorText;
+        }
+
+        function updateRoom1Capacity() {
+            if (selectedBranch && document.getElementById('room1-capacity')) {
+                const capacityByBranch = {
+                    'Ekamai': {
+                        ko: '최대 16명',
+                        th: 'สูงสุด 16 คน', 
+                        en: 'Max 16 guests'
+                    },
+                    'Phrom Phong': {
+                        ko: '최대 12명',
+                        th: 'สูงสุด 12 คน',
+                        en: 'Max 12 guests'
+                    }
+                };
+                
+                const capacity = capacityByBranch[selectedBranch][currentLang];
+                document.getElementById('room1-capacity').textContent = capacity;
+            }
         }
 
         function updateRoom2Capacity() {
