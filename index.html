@@ -976,6 +976,30 @@
 
         // 현재 언어
         let currentLang = 'ko';
+
+        // ===== 지점별 휴무일(공사 등) 차단 설정 (YYYY-MM-DD) =====
+        // 종료 후 해당 지점 배열을 비우거나 항목 제거하면 차단 해제됨
+        const BLACKOUT_DATES = {
+            'Ekamai': ['2026-06-15', '2026-06-16', '2026-06-17', '2026-06-18']
+        };
+        const BLACKOUT_MESSAGE = {
+            ko: '🚧 에까마이 지점은 내부 공사로 6월 15일부터 18일까지 휴무입니다.\n다른 날짜를 선택해 주세요.\n(프롬퐁 지점은 정상 영업합니다.)',
+            th: '🚧 สาขาเอกมัยปิดปรับปรุงภายใน วันที่ 15-18 มิถุนายน\nกรุณาเลือกวันอื่น\n(สาขาพร้อมพงษ์เปิดบริการตามปกติ)',
+            en: '🚧 Ekamai branch is closed for renovation from June 15-18.\nPlease select another date.\n(Phrom Phong branch is open as usual.)'
+        };
+        // 선택한 지점/날짜가 휴무일인지 판정
+        function isBlackedOut(branch, dateStr) {
+            return !!(branch && dateStr && BLACKOUT_DATES[branch] && BLACKOUT_DATES[branch].includes(dateStr));
+        }
+        // 현재 선택된 지점+날짜가 휴무일이면 안내 후 true 반환
+        function blackoutGuard() {
+            const dateStr = document.getElementById('date').value;
+            if (isBlackedOut(selectedBranch, dateStr)) {
+                alert(BLACKOUT_MESSAGE[currentLang] || BLACKOUT_MESSAGE.en);
+                return true;
+            }
+            return false;
+        }
         let selectedBranch = '';
         let selectedSpace = '';
         let selectedDetail = '';
@@ -1256,6 +1280,12 @@
                     document.getElementById('spaceOptions').classList.add('show');
                     updateRoom1Capacity();
                     updateRoom2Capacity();
+
+                    // 지점 변경으로 기존 선택 날짜가 휴무일이 되면 안내 + 초기화
+                    if (blackoutGuard()) {
+                        document.getElementById('date').value = '';
+                        generateTimeSlots();
+                    }
                 });
             });
 
@@ -1496,6 +1526,8 @@
 
             // 날짜 변경 시 시간 슬롯 업데이트
             document.getElementById('date').addEventListener('change', async function() {
+                // 휴무일(공사) 선택 시 즉시 차단 + 날짜 초기화
+                if (blackoutGuard()) { this.value = ''; generateTimeSlots(); return; }
                 await checkAndUpdateAvailability();
             });
 
@@ -1722,11 +1754,16 @@
             
             // 유효성 검사
             if (!selectedBranch) {
-                alert(currentLang === 'ko' ? '지점을 선택해주세요.' : 
+                alert(currentLang === 'ko' ? '지점을 선택해주세요.' :
                       currentLang === 'th' ? 'กรุณาเลือกสาขา' : 'Please select a branch.');
                 return;
             }
-            
+
+            // 휴무일(공사) 최종 차단 — 룸/홀 모두 적용
+            if (blackoutGuard()) {
+                return;
+            }
+
             if (!selectedSpace) {
                 alert(currentLang === 'ko' ? '공간 유형을 선택해주세요.' : 
                       currentLang === 'th' ? 'กรุณาเลือกประเภทพื้นที่' : 'Please select space type.');
