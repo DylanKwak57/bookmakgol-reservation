@@ -980,12 +980,12 @@
         // ===== 지점별 휴무일(공사 등) 차단 설정 (YYYY-MM-DD) =====
         // 종료 후 해당 지점 배열을 비우거나 항목 제거하면 차단 해제됨
         const BLACKOUT_DATES = {
-            'Ekamai': ['2026-06-15', '2026-06-16', '2026-06-17', '2026-06-18']
+            'Ekamai': ['2026-06-15', '2026-06-16', '2026-06-17', '2026-06-18', '2026-06-19']
         };
         const BLACKOUT_MESSAGE = {
-            ko: '🚧 에까마이 지점은 내부 공사로 6월 15일부터 18일까지 휴무입니다.\n다른 날짜를 선택해 주세요.\n(프롬퐁 지점은 정상 영업합니다.)',
-            th: '🚧 สาขาเอกมัยปิดปรับปรุงภายใน วันที่ 15-18 มิถุนายน\nกรุณาเลือกวันอื่น\n(สาขาพร้อมพงษ์เปิดบริการตามปกติ)',
-            en: '🚧 Ekamai branch is closed for renovation from June 15-18.\nPlease select another date.\n(Phrom Phong branch is open as usual.)'
+            ko: '🚧 에까마이 지점은 내부 공사로 6월 15일부터 19일까지 휴무입니다.\n다른 날짜를 선택해 주세요.\n(프롬퐁 지점은 정상 영업합니다.)',
+            th: '🚧 สาขาเอกมัยปิดปรับปรุงภายใน วันที่ 15-19 มิถุนายน\nกรุณาเลือกวันอื่น\n(สาขาพร้อมพงษ์เปิดบริการตามปกติ)',
+            en: '🚧 Ekamai branch is closed for renovation from June 15-19.\nPlease select another date.\n(Phrom Phong branch is open as usual.)'
         };
         // 선택한 지점/날짜가 휴무일인지 판정
         function isBlackedOut(branch, dateStr) {
