@@ -742,7 +742,7 @@
                                     <div id="room1-text">1번룸</div>
                                     <div id="room1-capacity">최대 16명</div>
                                 </div>
-                                <div class="detail-card" data-room="2번룸">
+                                <div class="detail-card" data-room="2번룸" style="display:none">
                                     <div id="room2-text">2번룸</div>
                                     <div id="room2-capacity">최대 6명 (에까마이) / 4명 (프롬퐁)</div>
                                 </div>
@@ -1058,8 +1058,7 @@
         // ===== 룸별 예약 상세(가격·조건) — 표시용 =====
         const ROOM_DETAILS = {
             'Ekamai':      { 'Room 1': { rate3h: 600, addHour: 200, food: 6000 } },
-            'Phrom Phong': { 'Room 1': { rate3h: 800, addHour: 300, food: 8000 },
-                             'Room 2': { rate3h: 400, addHour: 200, food: 4000 } }
+            'Phrom Phong': { 'Room 1': { rate3h: 800, addHour: 300, food: 8000 } }
         };
         // selectedDetail(한글/영문/태국어) → 'Room 1'/'Room 2'
         function normalizeRoomEn(detail) {
@@ -1374,9 +1373,9 @@
                         generateTimeSlots();
                     }
 
-                    // 에까마이 2번룸(작은방) 사용중지 — 지점별 노출 제어
+                    // 2번룸(작은방) 사용중지 — 에까마이·프롬퐁 모두 미운영
                     const room2Card = document.querySelector('[data-room="2번룸"]');
-                    if (room2Card) room2Card.style.display = (selectedBranch === 'Ekamai') ? 'none' : '';
+                    if (room2Card) room2Card.style.display = 'none';
 
                     // 지점이 바뀌면 룸 선택 무효화(룸 사양·예약금·가용성이 지점별로 다름) → 재선택 유도
                     if (selectedSpace === '룸') {
@@ -1896,11 +1895,11 @@
                 return;
             }
 
-            // 에까마이 2번룸 미운영 — 최종 차단(조작/엣지 방지)
-            if (selectedSpace === '룸' && selectedBranch === 'Ekamai' && normalizeRoomEn(selectedDetail) === 'Room 2') {
-                alert(currentLang === 'ko' ? '에까마이 지점은 2번룸을 운영하지 않습니다. 다른 룸을 선택해주세요.' :
-                      currentLang === 'th' ? 'สาขาเอกมัยไม่มีห้องที่ 2 กรุณาเลือกห้องอื่น' :
-                      'Ekamai branch does not offer Room 2. Please select another room.');
+            // 2번룸(작은방) 미운영 — 최종 차단(조작/엣지 방지)
+            if (selectedSpace === '룸' && normalizeRoomEn(selectedDetail) === 'Room 2') {
+                alert(currentLang === 'ko' ? '2번룸은 현재 운영하지 않습니다. 다른 룸을 선택해주세요.' :
+                      currentLang === 'th' ? 'ขณะนี้ไม่เปิดให้บริการห้องที่ 2 กรุณาเลือกห้องอื่น' :
+                      'Room 2 is currently not available. Please select another room.');
                 return;
             }
             
