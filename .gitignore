@@ -6,3 +6,6 @@ desktop.ini
 # IDE
 .vscode/
 .idea/
+
+# n8n 백업 원본(pinData=실행기록 포함) — 로컬 보관, 공개 금지
+backup/_raw/
