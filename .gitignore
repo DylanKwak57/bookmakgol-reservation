@@ -9,3 +9,6 @@ desktop.ini
 
 # n8n 백업 원본(pinData=실행기록 포함) — 로컬 보관, 공개 금지
 backup/_raw/
+
+# n8n 워크플로우 사본 — 실행기록(손님 정보) 포함, 공개 레포에 올리지 않음
+Bookmakgol_Book.json
