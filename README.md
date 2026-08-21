@@ -171,7 +171,7 @@ N8N_WEBHOOK_URL=https://n8n.57tb.art
 | Reservation DateTime | Date | 예약 날짜/시간 |
 | Branch | Select | Ekamai, Phrom Phong |
 | Space Type | Select | Room, Table |
-| Room Number | Select | Room 1 (800 THB), Room 2 (400 THB) ※ 저장값은 Room 1 유지 — 화면·이메일 표시만 Private Room |
+| Room Number | Select | Room 1 (800 THB), Room 2 (400 THB) ※ 저장값은 Room 1 유지 — 예약 화면·손님/관리자 이메일 표시만 Private Room (n8n 4개 노드에서 치환) |
 | Floor | Select | 1층, 2층 (홀 예약 시) |
 | Guests | Number | 인원 수 |
 | Name | Rich Text | 고객명 |
@@ -282,7 +282,7 @@ N8N_WEBHOOK_URL=https://n8n.57tb.art
 Room 예약 시 노쇼(No-show) 방지를 위한 예약금 시스템이 적용됩니다.
 
 ### 예약금 금액
-- **Room 1** (화면 표시명 Private Room): 800 THB
+- **Room 1** (손님 표시명 Private Room): 800 THB
 - **Room 2** (2번룸): 400 THB — 운영 중단 (에까마이·프롬퐁 모두 미운영)
 - **Hall** (홀/테이블): 예약금 없음
 
