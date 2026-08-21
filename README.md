@@ -22,7 +22,7 @@
   - 🇬🇧 BTS Ekamai Exit 4, Opposite Sukhumvit Hospital
 - **전화**: 095-868-6826
 - **구글맵**: https://maps.app.goo.gl/xb1Q4SW4fYd56FoYA
-- **룸**: 1번룸(최대 16명) ※ 2번룸(작은방) 운영 중단 (2026-06-30)
+- **룸**: Private Room(최대 16명) ※ 2번룸(작은방) 운영 중단 (2026-06-30)
 - **홀**: 1층 8테이블, 2층 7테이블
 
 ### 프롬퐁 지점
@@ -31,7 +31,7 @@
   - 🇬🇧 Sukhumvit Soi 24, Ariston Hotel 1st Floor
 - **전화**: 02-115-5500
 - **구글맵**: https://maps.app.goo.gl/PXyJGvjZcZu68RUL9
-- **룸**: 1번룸(최대 12명) ※ 2번룸(작은방) 운영 중단 (2026-08-21)
+- **룸**: Private Room(최대 12명) ※ 2번룸(작은방) 운영 중단 (2026-08-21)
 - **홀**: 1층 7테이블, 2층 8테이블
 
 **영업시간**: 11:00-15:00, 16:00-22:00 (Break: 15:00-16:00)
@@ -171,7 +171,7 @@ N8N_WEBHOOK_URL=https://n8n.57tb.art
 | Reservation DateTime | Date | 예약 날짜/시간 |
 | Branch | Select | Ekamai, Phrom Phong |
 | Space Type | Select | Room, Table |
-| Room Number | Select | Room 1 (800 THB), Room 2 (400 THB) |
+| Room Number | Select | Room 1 (800 THB), Room 2 (400 THB) ※ 저장값은 Room 1 유지 — 화면·이메일 표시만 Private Room |
 | Floor | Select | 1층, 2층 (홀 예약 시) |
 | Guests | Number | 인원 수 |
 | Name | Rich Text | 고객명 |
@@ -282,7 +282,7 @@ N8N_WEBHOOK_URL=https://n8n.57tb.art
 Room 예약 시 노쇼(No-show) 방지를 위한 예약금 시스템이 적용됩니다.
 
 ### 예약금 금액
-- **Room 1** (1번룸): 800 THB
+- **Room 1** (화면 표시명 Private Room): 800 THB
 - **Room 2** (2번룸): 400 THB — 운영 중단 (에까마이·프롬퐁 모두 미운영)
 - **Hall** (홀/테이블): 예약금 없음
 
