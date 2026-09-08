@@ -771,7 +771,8 @@
                     
                     <div class="form-group">
                         <label for="guests" id="guests-label">인원 <span class="required">*</span></label>
-                        <input type="number" id="guests" name="guests" min="1" max="20" required>
+                        <input type="number" id="guests" name="guests" min="1" max="50" required>
+                        <small id="guests-hint">1 - 50</small>
                     </div>
                 </div>
 
@@ -1053,6 +1054,28 @@
                 // Phrom Phong
                 return isRoom1 ? '800' : isRoom2 ? '400' : '800';
             }
+        }
+
+        // ===== 인원 정원 (정본) =====
+        // 룸은 지점별 정원이 정해져 있고, 카드 표시(최대 N명)와 입력 상한이 이 값을 함께 쓴다.
+        // 홀은 테이블을 붙여 쓸 수 있어 단체 예약이 가능하다.
+        const ROOM_CAPACITY = { 'Ekamai': 16, 'Phrom Phong': 12 };
+        const HALL_CAPACITY = 50;
+        // 지점·공간에 맞는 인원 상한
+        function getGuestLimit() {
+            if (selectedSpace === '룸') return ROOM_CAPACITY[selectedBranch] || Math.max(...Object.values(ROOM_CAPACITY));
+            return HALL_CAPACITY;
+        }
+        // 인원 입력 상한을 현재 선택에 맞춘다(지점·공간이 바뀔 때마다 호출)
+        function applyGuestLimit() {
+            const input = document.getElementById('guests');
+            if (!input) return;
+            const max = getGuestLimit();
+            input.max = max;
+            // 상한이 줄어든 경우(홀 → 룸, 에까마이 → 프롬퐁) 남아 있던 값이 제출을 막지 않도록 정리
+            if (input.value && Number(input.value) > max) input.value = '';
+            const hint = document.getElementById('guests-hint');
+            if (hint) hint.textContent = `1 - ${max}`;
         }
 
         // 손님에게 보여줄 룸 표시명 — 양 지점 모두 룸이 1개뿐이라 번호를 쓰지 않는다.
@@ -1370,6 +1393,7 @@
                     document.getElementById('spaceOptions').classList.add('show');
                     updateRoom1Capacity();
                     updateRoom2Capacity();
+                    applyGuestLimit();
 
                     // 지점 변경으로 기존 선택 날짜가 휴무일이 되면 안내 + 초기화
                     if (blackoutGuard()) {
@@ -1400,6 +1424,7 @@
                     document.querySelectorAll('.space-btn').forEach(b => b.classList.remove('selected'));
                     this.classList.add('selected');
                     selectedSpace = this.dataset.space;
+                    applyGuestLimit();
                     
                     if (selectedSpace === '룸') {
                         document.getElementById('roomDetails').classList.add('show');
@@ -1827,20 +1852,10 @@
 
         function updateRoom1Capacity() {
             if (selectedBranch && document.getElementById('room1-capacity')) {
-                const capacityByBranch = {
-                    'Ekamai': {
-                        ko: '최대 16명',
-                        th: 'สูงสุด 16 คน', 
-                        en: 'Max 16 guests'
-                    },
-                    'Phrom Phong': {
-                        ko: '최대 12명',
-                        th: 'สูงสุด 12 คน',
-                        en: 'Max 12 guests'
-                    }
-                };
-                
-                const capacity = capacityByBranch[selectedBranch][currentLang];
+                const n = ROOM_CAPACITY[selectedBranch];
+                const capacity = currentLang === 'ko' ? `최대 ${n}명`
+                               : currentLang === 'th' ? `สูงสุด ${n} คน`
+                               : `Max ${n} guests`;
                 document.getElementById('room1-capacity').textContent = capacity;
             }
         }
