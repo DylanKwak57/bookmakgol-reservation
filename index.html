@@ -350,6 +350,33 @@
             box-shadow: 0 4px 15px rgba(40, 167, 69, 0.2);
             backdrop-filter: blur(5px);
         }
+
+        /* 접수 완료 화면 — 확정 전임을 알리는 주황 계열(초록 '성공' 느낌 대신) */
+        .success.pending {
+            background: #fff8e6;
+            border: 2px solid #e8a33d;
+            color: #4a3b1f;
+            box-shadow: 0 4px 15px rgba(232, 163, 61, 0.2);
+        }
+        #success-text { font-weight: 700; font-size: 1.05rem; }
+        #success-status { color: #b45309; font-size: 1.1rem; }
+
+        /* 임박 예약(지금 + LEAD_MINUTES 이내) 전화 안내 */
+        .lead-notice {
+            display: none;
+            margin-top: 12px;
+            padding: 12px 14px;
+            border-radius: 10px;
+            background: #fff8e6;
+            border: 1px solid #e8a33d;
+            color: #4a3b1f;
+            font-size: 0.9rem;
+            line-height: 1.6;
+            white-space: pre-line;
+            word-break: keep-all;
+        }
+        .lead-notice.show { display: block; }
+        .lead-notice a { color: #b45309; font-weight: 700; text-decoration: none; white-space: nowrap; }
         
         .success h3 {
             color: #28a745;
@@ -715,6 +742,7 @@
                         <div class="time-grid" id="timeGrid">
                             <!-- 시간 슬롯들이 동적으로 생성됩니다 -->
                         </div>
+                        <div class="lead-notice" id="leadNotice"></div>
                         <input type="hidden" id="selectedTime" name="time">
                     </div>
                 </div>
@@ -861,8 +889,10 @@
                 <div id="loading-text">예약을 처리 중입니다...</div>
             </div>
 
-            <div class="message success" id="successMessage">
-                <div id="success-text">예약이 성공적으로 접수되었습니다!</div>
+            <div class="message success pending" id="successMessage">
+                <div id="success-text">예약 요청이 접수되었습니다</div>
+                <div><strong id="success-status">아직 확정되지 않은 예약입니다.</strong></div>
+                <div id="success-next-step">매장의 예약 확정 이메일을 받은 뒤에 방문해 주세요.</div>
                 <div id="booking-number"></div>
             </div>
 
@@ -924,7 +954,9 @@
                 receiptHelp: '입금 후 영수증 사진을 업로드해주세요. (JPG, PNG, PDF, 최대 5MB)',
                 submitBtn: '예약하기',
                 loadingText: '예약을 처리 중입니다...',
-                successText: '예약이 성공적으로 접수되었습니다!',
+                successText: '예약 요청이 접수되었습니다',
+                successStatus: '아직 확정되지 않은 예약입니다.',
+                successNextStep: '매장의 예약 확정 이메일을 받은 뒤에 방문해 주세요.',
                 errorText: '예약 처리 중 오류가 발생했습니다.',
                 required: '*'
             },
@@ -965,7 +997,10 @@
                 receiptHelp: 'กรุณาอัพโหลดสลิปโอนเงิน (JPG, PNG, PDF, สูงสุด 5MB)',
                 submitBtn: 'จองโต๊ะ',
                 loadingText: 'กำลังดำเนินการจอง...',
-                successText: 'การจองสำเร็จแล้ว!',
+                // Draft customer-facing Thai copy; pending native review.
+                successText: 'ส่งคำขอจองเรียบร้อยแล้ว',
+                successStatus: 'การจองยังไม่ได้รับการยืนยัน',
+                successNextStep: 'กรุณามาที่ร้านหลังจากได้รับการยืนยันจากทางร้านแล้วเท่านั้นค่ะ',
                 errorText: 'เกิดข้อผิดพลาดในการจอง',
                 required: '*'
             },
@@ -1006,7 +1041,9 @@
                 receiptHelp: 'Please upload payment receipt (JPG, PNG, PDF, max 5MB)',
                 submitBtn: 'Make Reservation',
                 loadingText: 'Processing reservation...',
-                successText: 'Reservation submitted successfully!',
+                successText: 'Reservation request received',
+                successStatus: 'Your reservation is not yet confirmed.',
+                successNextStep: 'Please wait for the restaurant’s confirmation email before visiting.',
                 errorText: 'Error processing reservation.',
                 required: '*'
             }
@@ -1724,9 +1761,90 @@
             }
         }
 
+        // ── 임박 예약 차단 ─────────────────────────────────────────
+        // 직원이 확정하기 전에 손님이 먼저 도착하는 일을 막기 위해,
+        // "지금(방콕 시각) + LEAD_MINUTES" 이전 시간은 웹에서 받지 않고 전화로 안내한다.
+        const LEAD_MINUTES = 60;
+        const BRANCH_PHONES = [
+            { key: 'Ekamai', phone: '095-868-6826', name: { ko: '에까마이', th: 'เอกมัย', en: 'Ekamai' } },
+            { key: 'Phrom Phong', phone: '02-115-5500', name: { ko: '프롬퐁', th: 'พร้อมพงษ์', en: 'Phrom Phong' } }
+        ];
+        const LEAD_TEXT = {
+            ko: {
+                some: `지금부터 ${LEAD_MINUTES / 60}시간 이내 예약은 웹으로 받지 않습니다.\n급하신 예약은 전화로 문의해 주세요.`,
+                none: `오늘은 웹으로 예약할 수 있는 시간이 남아 있지 않습니다.\n오늘 예약은 전화로 문의해 주세요.`,
+                alert: `선택하신 시간은 지금부터 ${LEAD_MINUTES / 60}시간 이내라 웹으로 예약할 수 없습니다.\n다른 시간을 선택하시거나 전화로 문의해 주세요.`
+            },
+            // 태국어는 초안 — 에이님 검수 전
+            th: {
+                some: `ไม่รับจองผ่านเว็บสำหรับเวลาภายใน ${LEAD_MINUTES / 60} ชั่วโมงนับจากนี้ค่ะ\nหากต้องการจองด่วน กรุณาโทรสอบถามที่สาขาค่ะ`,
+                none: `วันนี้ไม่มีเวลาที่สามารถจองผ่านเว็บได้แล้วค่ะ\nหากต้องการจองวันนี้ กรุณาโทรสอบถามที่สาขาค่ะ`,
+                alert: `เวลาที่เลือกอยู่ภายใน ${LEAD_MINUTES / 60} ชั่วโมงนับจากนี้ จึงไม่สามารถจองผ่านเว็บได้ค่ะ\nกรุณาเลือกเวลาอื่น หรือโทรสอบถามที่สาขาค่ะ`
+            },
+            en: {
+                some: `Online reservations are not accepted within ${LEAD_MINUTES / 60} hour from now.\nFor urgent reservations, please call the branch.`,
+                none: `There are no more times available for online reservation today.\nFor a reservation today, please call the branch.`,
+                alert: `The selected time is within ${LEAD_MINUTES / 60} hour from now and cannot be reserved online.\nPlease choose another time or call the branch.`
+            }
+        };
+
+        // 손님 기기 시간대와 무관하게 방콕(UTC+7) 기준의 오늘 날짜·현재 분을 돌려준다
+        function bangkokNow() {
+            const d = new Date(Date.now() + 7 * 60 * 60 * 1000);
+            return {
+                dateStr: d.toISOString().split('T')[0],
+                minutes: d.getUTCHours() * 60 + d.getUTCMinutes()
+            };
+        }
+
+        // 해당 날짜·시간이 "지금 + LEAD_MINUTES" 이전(지난 시간 포함)이면 true
+        function isTooSoon(dateStr, time) {
+            if (!dateStr || !time) return false;
+            const now = bangkokNow();
+            if (dateStr < now.dateStr) return true;
+            if (dateStr > now.dateStr) return false;
+            const [h, m] = time.split(':').map(Number);
+            return (h * 60 + m) < now.minutes + LEAD_MINUTES;
+        }
+
+        function leadPhones() {
+            const list = selectedBranch ? BRANCH_PHONES.filter(b => b.key === selectedBranch) : BRANCH_PHONES;
+            return list.length ? list : BRANCH_PHONES;
+        }
+
+        // 시간 칸 아래 전화 안내 — 임박 차단에 걸린 칸이 있을 때만 보인다
+        function renderLeadNotice() {
+            const notice = document.getElementById('leadNotice');
+            if (!notice) return;
+            const slots = Array.from(document.querySelectorAll('#timeGrid .time-slot'));
+            const tooSoon = slots.filter(s => s.classList.contains('too-soon'));
+            notice.textContent = '';
+            if (tooSoon.length === 0) { notice.classList.remove('show'); return; }
+            const t = LEAD_TEXT[currentLang] || LEAD_TEXT.en;
+            const noneLeft = slots.every(s => s.classList.contains('unavailable'));
+            notice.appendChild(document.createTextNode((noneLeft ? t.none : t.some) + '\n'));
+            const phones = leadPhones();
+            phones.forEach((b, i) => {
+                const label = phones.length > 1 ? (b.name[currentLang] || b.name.en) + ' ' : '';
+                notice.appendChild(document.createTextNode((i ? '\n📞 ' : '📞 ') + label));
+                const a = document.createElement('a');
+                a.href = 'tel:' + b.phone.replace(/-/g, '');
+                a.textContent = b.phone;
+                notice.appendChild(a);
+            });
+            notice.classList.add('show');
+        }
+
+        function leadAlertText() {
+            const t = LEAD_TEXT[currentLang] || LEAD_TEXT.en;
+            return t.alert + '\n📞 ' + leadPhones().map(b =>
+                (selectedBranch ? '' : (b.name[currentLang] || b.name.en) + ' ') + b.phone).join(' / ');
+        }
+
         function generateTimeSlots(blockedSlots = []) {
             const timeGrid = document.getElementById('timeGrid');
             timeGrid.innerHTML = '';
+            const slotDate = document.getElementById('date').value;
             
             // 영업시간: 11:00-15:00, 16:00-22:00
             const morningSlots = [];
@@ -1758,8 +1876,11 @@
                 const slot = document.createElement('div');
                 slot.className = 'time-slot';
                 
-                // 예약된 시간인지 체크
-                if (blockedSlots.includes(time)) {
+                // 임박 예약(지금 + LEAD_MINUTES 이내) → 전화 안내 대상
+                if (isTooSoon(slotDate, time)) {
+                    slot.classList.add('unavailable', 'too-soon');
+                    slot.textContent = time;
+                } else if (blockedSlots.includes(time)) {
                     slot.classList.add('unavailable');
                     slot.textContent = time + ' ❌';
                     slot.title = '예약 불가 (이미 예약됨)';
@@ -1770,6 +1891,11 @@
                 slot.dataset.time = time;
                 timeGrid.appendChild(slot);
             });
+
+            // 이미 골라 둔 시간이 임박 차단에 걸리면 선택을 푼다
+            const picked = document.getElementById('selectedTime');
+            if (picked.value && isTooSoon(slotDate, picked.value)) picked.value = '';
+            renderLeadNotice();
         }
 
         function initializeForm() {
@@ -1847,6 +1973,9 @@
             document.getElementById('submitBtn').textContent = t.submitBtn;
             document.getElementById('loading-text').textContent = t.loadingText;
             document.getElementById('success-text').textContent = t.successText;
+            document.getElementById('success-status').textContent = t.successStatus;
+            document.getElementById('success-next-step').textContent = t.successNextStep;
+            renderLeadNotice();
             document.getElementById('error-text').textContent = t.errorText;
         }
 
@@ -1899,6 +2028,14 @@
 
             // 휴무일(공사) 최종 차단 — 룸/홀 모두 적용
             if (blackoutGuard()) {
+                return;
+            }
+
+            // 임박 예약 최종 차단 — 화면을 오래 열어 둔 경우를 위해 제출 순간에 다시 검사
+            if (isTooSoon(document.getElementById('date').value, document.getElementById('selectedTime').value)) {
+                alert(leadAlertText());
+                await checkAndUpdateAvailability();
+                document.getElementById('date').scrollIntoView({ behavior: 'smooth', block: 'center' });
                 return;
             }
 
@@ -2080,10 +2217,7 @@
                     document.getElementById('errorMessage').style.display = 'none';
                     document.getElementById('successMessage').style.display = 'block';
                     
-                    // 상세한 성공 메시지 생성
-                    const customerName = document.getElementById('name').value;
-                    const customerPhone = document.getElementById('phone').value;
-                    const customerEmail = document.getElementById('email').value;
+                    // 접수된 요청 정보 표시
                     const selectedDate = document.getElementById('date').value;
                     const selectedTimeValue = document.getElementById('selectedTime').value;
                     const guestCount = document.getElementById('guests').value;
@@ -2142,9 +2276,7 @@
                         : '';
                     
                     const successMessages = {
-                        ko: `${customerName}님의 예약이 성공적으로 접수되었습니다! 🎉
-
-📋 예약 정보
+                        ko: `📋 예약 요청 정보
 • 예약번호: ${result.bookingNumber}
 • 지점: ${branchName}
 • 날짜: ${formattedDate}
@@ -2156,13 +2288,8 @@
 • 전화번호: ${branchContact.phone}
 • 주소: ${branchContact.address}
 
-📧 다음 단계
-관리자가 확인 후 최종 예약 확정 이메일을 발송해드립니다.
-
 문의사항이 있으시면 위 전화번호로 연락주세요.`,
-                        th: `การจองของคุณ${customerName} สำเร็จแล้ว! 🎉
-
-📋 ข้อมูลการจอง
+                        th: `📋 ข้อมูลคำขอจอง
 • เลขที่การจอง: ${result.bookingNumber}
 • สาขา: ${branchName}
 • วันที่: ${formattedDate}
@@ -2174,13 +2301,8 @@
 • เบอร์โทร: ${branchContact.phone}
 • ที่อยู่: ${branchContact.address}
 
-📧 ขั้นตอนถัดไป
-ผู้จัดการจะตรวจสอบและส่งอีเมลยืนยันการจองขั้นสุดท้ายให้คุณ
-
 หากมีข้อสงสัย กรุณาโทรสอบถามเบอร์ข้างบน`,
-                        en: `${customerName}'s reservation submitted successfully! 🎉
-
-📋 Reservation Details
+                        en: `📋 Reservation Request Details
 • Booking Number: ${result.bookingNumber}
 • Branch: ${branchName}
 • Date: ${formattedDate}
@@ -2192,13 +2314,10 @@
 • Phone: ${branchContact.phone}
 • Address: ${branchContact.address}
 
-📧 Next Steps
-Manager will review and send final confirmation email.
-
 For inquiries, please call the number above.`
                     };
                     
-                    document.getElementById('booking-number').innerHTML = successMessages[currentLang];
+                    document.getElementById('booking-number').textContent = successMessages[currentLang];
                 } else {
                     // status가 'success'가 아니면 에러 처리
                     throw new Error(result.message || `예약 처리 실패: status=${result.status || 'unknown'}`);
