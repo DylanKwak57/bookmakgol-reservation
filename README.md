@@ -8,7 +8,7 @@
 
 - **다국어 지원**: 한국어, 태국어, 영어 실시간 전환
 - **실시간 예약**: 중복 예약 방지 및 즉시 처리
-- **예약금 시스템**: Room 예약 시 노쇼 방지 (800/400 THB)
+- **예약금 시스템**: Room 예약 시 노쇼 방지 (에까마이 600 THB / 프롬퐁 800 THB — 정본은 `index.html`의 `getDepositAmount`)
 - **자동 알림**: 예약 확정 및 리마인더 이메일 자동 발송 (3개 언어)
 - **모바일 최적화**: 라인 앱 내 브라우저 완벽 지원
 - **관리자 대시보드**: Notion 기반 예약 관리 시스템
@@ -185,7 +185,7 @@ N8N_WEBHOOK_URL=https://n8n.57tb.art
 | Created Time | Created time | 생성일시 |
 | Last Edited Time | Last edited time | 수정일시 |
 
-💡 **예약금 금액**: Room Number 필드로 자동 판단 (Room 1: 800 THB, Room 2: 400 THB)  
+💡 **예약금 금액**: 지점 + Room Number 로 자동 판단 (Room 1: 에까마이 600 THB / 프롬퐁 800 THB · Room 2 는 미운영)  
 💡 **입금 상태**: Status 필드로 관리 (Pending = 입금대기, Confirmed = 입금완료)
 
 ## 📱 사용 방법
@@ -203,7 +203,7 @@ N8N_WEBHOOK_URL=https://n8n.57tb.art
 #### Room 예약 (예약금 필요)
 1-5단계 동일
 6. **예약 완료 화면**에서 다음 정보 확인:
-   - 예약금 금액 (Room 1: 800 THB, Room 2: 400 THB)
+   - 예약금 금액 (Room 1: 에까마이 600 THB / 프롬퐁 800 THB)
    - 은행 계좌 정보
    - 입금 기한 (1시간 이내)
    - LINE 공식 계정 링크
@@ -282,8 +282,8 @@ N8N_WEBHOOK_URL=https://n8n.57tb.art
 Room 예약 시 노쇼(No-show) 방지를 위한 예약금 시스템이 적용됩니다.
 
 ### 예약금 금액
-- **Room 1** (손님 표시명 Private Room): 800 THB
-- **Room 2** (2번룸): 400 THB — 운영 중단 (에까마이·프롬퐁 모두 미운영)
+- **Room 1** (손님 표시명 Private Room): 에까마이 600 THB / 프롬퐁 800 THB (2026-11-20 확인 — 예약 화면 코드 값이 정본)
+- **Room 2** (2번룸): 운영 중단 (에까마이·프롬퐁 모두 미운영 · 코드에 남은 값 300 THB)
 - **Hall** (홀/테이블): 예약금 없음
 
 ### 입금 계좌 정보
